@@ -377,6 +377,14 @@
         Utils.hideModal('registerModal');
       }
     });
+  
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(reg => console.log('Service Worker ativo!', reg))
+        .catch(err => console.log('Erro ao registar SW:', err));
+    });
+  }
   </script>
 </body>
 </html>
