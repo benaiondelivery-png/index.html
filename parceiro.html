@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#E30613">
+  <title>Parceiro - BENAION DELIVERY</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-top">
+        <div class="logo">
+          <div class="logo-icon"><i class="fas fa-store"></i></div>
+          <div class="logo-text">
+            <h1 id="parceiroNome">Parceiro</h1>
+            <p>Painel de Pedidos</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="header-btn" onclick="Auth.logout()"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="stat-card">
+          <div class="stat-value" id="statPedidosHoje">0</div>
+          <div class="stat-label">Pedidos Hoje</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-value" id="statPedidosTotal">0</div>
+          <div class="stat-label">Total de Pedidos</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary mb-2" onclick="Utils.showModal('novoPedidoModal')">
+        <i class="fas fa-plus"></i> Novo Pedido
+      </button>
+
+      <div id="listaPedidos"></div>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active"><i class="fas fa-list"></i><span>Pedidos</span></button>
+      <button class="nav-item" onclick="Utils.showModal('novoPedidoModal')"><i class="fas fa-plus-circle"></i><span>Novo</span></button>
+      <button class="nav-item" onclick="mostrarPerfil()"><i class="fas fa-user"></i><span>Perfil</span></button>
+    </nav>
+  </div>
+
+  <!-- Modal Novo Pedido (similar ao admin) -->
+  <div class="modal" id="novoPedidoModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">📋 Novo Pedido</h3>
+        <button class="modal-close" onclick="Utils.hideModal('novoPedidoModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="novoPedidoForm" onsubmit="criarPedido(event)">
+          <div class="form-group">
+            <label class="form-label">Nome do Cliente *</label>
+            <input type="text" class="form-control" id="pedidoNome" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Produto *</label>
+            <input type="text" class="form-control" id="pedidoProduto" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Valor (R$) *</label>
+            <input type="number" class="form-control" id="pedidoValor" required step="0.01" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Endereço de Entrega *</label>
+            <input type="text" class="form-control" id="pedidoEntrega" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bairro *</label>
+            <select class="form-control" id="pedidoBairro" required>
+              <option value="Laranjal do Jari">Laranjal do Jari</option>
+              <option value="Monte Dourado">Monte Dourado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Forma de Pagamento *</label>
+            <select class="form-control" id="pedidoPagamento" required>
+              <option value="pix">PIX</option>
+              <option value="cartao">Cartão</option>
+              <option value="dinheiro">Dinheiro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Observações</label>
+            <textarea class="form-control" id="pedidoObs"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Criar Pedido</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    Auth.requireAuth(['parceiro']);
+    const currentUser = Auth.getCurrentUser();
+    let parceiro;
+    let pedidos = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      parceiro = await API.getParceiroByUserId(currentUser.id);
+      if (parceiro) {
+        document.getElementById('parceiroNome').textContent = parceiro.nomeComercio;
+      }
+      await carregarDados();
+      setInterval(carregarDados, 30000);
+    });
+
+    async function carregarDados() {
+      try {
+        const result = await API.getPedidos(1, 1000);
+        pedidos = result.data.filter(p => p.parceiroId === parceiro.id);
+        
+        const hoje = new Date().setHours(0, 0, 0, 0);
+        const pedidosHoje = pedidos.filter(p => new Date(p.created_at) >= hoje).length;
+        
+        document.getElementById('statPedidosHoje').textContent = pedidosHoje;
+        document.getElementById('statPedidosTotal').textContent = pedidos.length;
+        
+        renderizarPedidos();
+      } catch (error) {
+        console.error('Erro:', error);
+      }
+    }
+
+    function renderizarPedidos() {
+      const container = document.getElementById('listaPedidos');
+      if (pedidos.length === 0) {
+        Utils.showEmptyState(container, '📦', 'Nenhum pedido', 'Crie seu primeiro pedido');
+        return;
+      }
+      
+      pedidos.sort((a, b) => b.created_at - a.created_at);
+      container.innerHTML = pedidos.map(p => `
+        <div class="pedido-card">
+          <div class="pedido-header">
+            <div class="pedido-numero">#${p.id.substring(0, 8)}</div>
+            <span class="status-badge status-${p.status}">${Utils.getStatusText(p.status)}</span>
+          </div>
+          <div class="pedido-info">
+            <div class="info-row"><span class="info-label">Cliente:</span><span>${p.clienteNome}</span></div>
+            <div class="info-row"><span class="info-label">Entrega:</span><span>${p.enderecoEntrega}</span></div>
+            <div class="info-row"><span class="info-label">Valor:</span><span>${Utils.formatCurrency(p.valor)}</span></div>
+          </div>
+          ${p.entregadorNome ? `<div style="margin-top: 8px; color: var(--success); font-size: 13px;"><i class="fas fa-motorcycle"></i> ${p.entregadorNome}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function criarPedido(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      
+      try {
+        await API.createPedido({
+          clienteNome: document.getElementById('pedidoNome').value,
+          enderecoRetirada: parceiro.endereco,
+          produto: document.getElementById('pedidoProduto').value,
+          valor: parseFloat(document.getElementById('pedidoValor').value),
+          enderecoEntrega: document.getElementById('pedidoEntrega').value,
+          bairro: document.getElementById('pedidoBairro').value,
+          formaPagamento: document.getElementById('pedidoPagamento').value,
+          observacoes: document.getElementById('pedidoObs').value,
+          parceiroId: parceiro.id,
+          parceiroNome: parceiro.nomeComercio,
+          status: 'aguardando_entregador'
+        });
+        
+        Utils.showToast('Pedido criado!', 'success');
+        Utils.hideModal('novoPedidoModal');
+        e.target.reset();
+        await carregarDados();
+      } catch (error) {
+        Utils.showToast('Erro ao criar pedido', 'error');
+      }
+      btn.disabled = false;
+    }
+
+    function mostrarPerfil() {
+      alert(`${parceiro.nomeComercio}\n${parceiro.tipoComercio}\n${parceiro.endereco}\n${parceiro.telefone}`);
+    }
+
+    document.getElementById('novoPedidoModal').addEventListener('click', e => {
+      if (e.target.classList.contains('modal')) Utils.hideModal('novoPedidoModal');
+    });
+  </script>
+</body>
+  </html>
