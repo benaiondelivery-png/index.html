@@ -97,7 +97,7 @@ const Auth = {
       Utils.showToast('Login com Google não está disponível na versão demo. Use email e senha.', 'warning');
       
       // Código para produção:
-      /*
+      
       const provider = new firebase.auth.GoogleAuthProvider();
       const result = await firebase.auth().signInWithPopup(provider);
       const googleUser = result.user;
@@ -206,16 +206,16 @@ const Auth = {
 
     switch (user.userType) {
       case 'admin':
-        window.location.href = '/admin.html';
+        window.location.href = 'admin.html';
         break;
       case 'entregador':
-        window.location.href = '/entregador.html';
+        window.location.href = 'entregador.html';
         break;
       case 'parceiro':
-        window.location.href = '/parceiro.html';
+        window.location.href = 'parceiro.html';
         break;
       case 'cliente':
-        window.location.href = '/cliente.html';
+        window.location.href = 'cliente.html';
         break;
       default:
         window.location.href = '/';
