@@ -250,7 +250,7 @@ const API = {
   },
 
   // ========================================
-  // ESTATÍSTICAS
+  // ESTATÍSTICAS (VERSÃO CORRIGIDA)
   // ========================================
 
   async getEstatisticas() {
@@ -259,8 +259,8 @@ const API = {
       this.getUsers(1, 1000)
     ]);
 
-    const pedidos = pedidosResult.data;
-    const users = usersResult.data;
+    const pedidos = pedidosResult.data || []; // Garante que é um array
+    const users = usersResult.data || [];
 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -271,9 +271,22 @@ const API = {
     const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
     return {
-      pedidosHoje: pedidos.filter(p => new Date(p.created_at) >= hoje).length,
-      pedidosSemana: pedidos.filter(p => new Date(p.created_at) >= inicioSemana).length,
-      pedidosMes: pedidos.filter(p => new Date(p.created_at) >= inicioMes).length,
+      // Aqui entram as correções com a verificação !isNaN
+      pedidosHoje: pedidos.filter(p => {
+        const d = new Date(p.created_at);
+        return !isNaN(d) && d >= hoje;
+      }).length,
+
+      pedidosSemana: pedidos.filter(p => {
+        const d = new Date(p.created_at);
+        return !isNaN(d) && d >= inicioSemana;
+      }).length,
+
+      pedidosMes: pedidos.filter(p => {
+        const d = new Date(p.created_at);
+        return !isNaN(d) && d >= inicioMes;
+      }).length,
+
       pedidosTotal: pedidos.length,
       pedidosAtivos: pedidos.filter(p => !['finalizado', 'cancelado'].includes(p.status)).length,
       entregadoresOnline: users.filter(u => u.userType === 'entregador' && u.online).length,
@@ -283,25 +296,6 @@ const API = {
     };
   },
 
-  async getEstatisticasEntregador(entregadorId) {
-    const result = await this.getPedidos(1, 1000);
-    const pedidos = result.data.filter(p => p.entregadorId === entregadorId && p.status === 'finalizado');
-
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    
-    const inicioSemana = new Date(hoje);
-    inicioSemana.setDate(hoje.getDate() - hoje.getDay());
-    
-    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-
-    return {
-      hoje: pedidos.filter(p => new Date(p.created_at) >= hoje).length,
-      semana: pedidos.filter(p => new Date(p.created_at) >= inicioSemana).length,
-      mes: pedidos.filter(p => new Date(p.created_at) >= inicioMes).length,
-      total: pedidos.length
-    };
-  }
 };
 
 // Exportar para uso global
