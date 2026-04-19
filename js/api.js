@@ -18,16 +18,26 @@ const db = getFirestore(app);
 const API = {
   async createUser(data) {
     try {
+      // Garantia de que os dados estão vindo preenchidos do HTML
+      if (!data.name || !data.email) {
+        throw new Error("Os dados do formulário estão chegando vazios na API.");
+      }
+
       const docRef = await addDoc(collection(db, "users"), {
-        ...data,
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        userType: data.userType,
         created_at: new Date().toISOString()
       });
+
       return { id: docRef.id, ...data };
     } catch (e) {
       console.error("Erro no Firestore (createUser):", e);
-      throw new Error("Erro ao salvar no banco de dados.");
+      throw e; // Lança o erro real para o index.html exibir
     }
   },
+  
   async getUserByEmail(email) {
     try {
       const q = query(collection(db, "users"), where("email", "==", email));
@@ -48,14 +58,18 @@ const Auth = {
     localStorage.setItem('benaion_user', JSON.stringify(user));
     return user;
   },
+  
   async register(data) {
-    // Verificação básica antes de enviar ao Firebase
-    if (!data.email || !data.password) throw new Error("Dados incompletos");
+    // Verificação antes de chamar o Firebase
+    if (!data.email || !data.password || !data.name) {
+      throw new Error("Preencha todos os campos corretamente.");
+    }
     
     const user = await API.createUser(data);
     localStorage.setItem('benaion_user', JSON.stringify(user));
     return user;
   },
+
   redirectToDashboard() {
     const user = JSON.parse(localStorage.getItem('benaion_user'));
     if (user && user.userType) {
@@ -64,14 +78,14 @@ const Auth = {
       window.location.href = 'index.html';
     }
   },
-  // Adicionei isso para ajudar o index.html a saber quem está logado
+
   getCurrentUser() {
     return JSON.parse(localStorage.getItem('benaion_user'));
   }
 };
 
-// GARANTIA DE EXPOSIÇÃO GLOBAL
+// EXPOSIÇÃO GLOBAL
 window.API = API;
 window.Auth = Auth;
 
-console.log("Benaion API carregada com sucesso!");
+console.log("Benaion API v1.4 carregada!");
