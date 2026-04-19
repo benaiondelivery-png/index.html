@@ -7,20 +7,18 @@
   <title>Entregador - BENAION DELIVERY</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
   <div class="container">
-    <!-- Header -->
     <header class="header">
       <div class="header-top">
         <div class="logo">
           <div class="logo-icon">
-    <img src="https://i.postimg.cc/T2Vt53JP/Vermelho-delivery-logo-20260227-011329-0005.png" alt="Logo Benaion" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-</div>
-
+            <img src="https://i.postimg.cc/T2Vt53JP/Vermelho-delivery-logo-20260227-011329-0005.png" alt="Logo Benaion" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+          </div>
           <div class="logo-text">
-            <h1 id="entregadorNome">Entregador</h1>
+            <h1 id="entregadorNome">Carregando...</h1>
             <p>Painel de Entregas</p>
           </div>
         </div>
@@ -28,16 +26,14 @@
           <button class="header-btn" id="btnStatus" onclick="toggleStatus()" title="Status">
             <i class="fas fa-circle"></i>
           </button>
-          <button class="header-btn" onclick="Auth.logout()" title="Sair">
+          <button class="header-btn" onclick="window.Auth.logout()" title="Sair">
             <i class="fas fa-sign-out-alt"></i>
           </button>
         </div>
       </div>
     </header>
 
-    <!-- Conteúdo Principal -->
     <main class="page" id="mainContent">
-      <!-- Estatísticas do Entregador -->
       <div class="card" style="background: linear-gradient(135deg, var(--primary-red) 0%, #c00510 100%); color: white; margin-bottom: 20px;">
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
           <div>
@@ -55,73 +51,65 @@
         </div>
       </div>
 
-      <!-- Tabs -->
       <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-        <button class="btn btn-small btn-primary" onclick="mostrarAba('disponiveis')">
-          <i class="fas fa-inbox"></i> Disponíveis
-        </button>
-        <button class="btn btn-small btn-outline" onclick="mostrarAba('minhas')">
-          <i class="fas fa-tasks"></i> Minhas Entregas
-        </button>
-        <button class="btn btn-small btn-outline" onclick="mostrarAba('historico')">
-          <i class="fas fa-history"></i> Histórico
-        </button>
+        <button class="btn btn-small btn-primary" onclick="mostrarAba('disponiveis')">Disponíveis</button>
+        <button class="btn btn-small btn-outline" onclick="mostrarAba('minhas')">Minhas</button>
       </div>
 
-      <!-- Aba Pedidos Disponíveis -->
-      <div id="abaDisponiveis">
-        <div id="listaPedidosDisponiveis"></div>
-      </div>
-
-      <!-- Aba Minhas Entregas -->
-      <div id="abaMinhas" class="hidden">
-        <div id="listaMinhasEntregas"></div>
-      </div>
-
-      <!-- Aba Histórico -->
-      <div id="abaHistorico" class="hidden">
-        <div id="listaHistorico"></div>
-      </div>
+      <div id="abaDisponiveis"><div id="listaPedidosDisponiveis"></div></div>
+      <div id="abaMinhas" class="hidden"><div id="listaMinhasEntregas"></div></div>
     </main>
 
-    <!-- Navegação Inferior -->
     <nav class="bottom-nav">
-      <button class="nav-item active" onclick="mostrarAba('disponiveis')">
-        <i class="fas fa-inbox"></i>
-        <span>Disponíveis</span>
-      </button>
-      <button class="nav-item" onclick="mostrarAba('minhas')">
-        <i class="fas fa-tasks"></i>
-        <span>Minhas</span>
-      </button>
-      <button class="nav-item" onclick="mostrarAba('historico')">
-        <i class="fas fa-history"></i>
-        <span>Histórico</span>
-      </button>
-      <button class="nav-item" id="navStatus" onclick="toggleStatus()">
-        <i class="fas fa-circle"></i>
-        <span>Offline</span>
-      </button>
+      <button class="nav-item active" onclick="mostrarAba('disponiveis')"><i class="fas fa-inbox"></i><span>Disponíveis</span></button>
+      <button class="nav-item" onclick="mostrarAba('minhas')"><i class="fas fa-tasks"></i><span>Minhas</span></button>
+      <button class="nav-item" id="navStatus" onclick="toggleStatus()"><i class="fas fa-circle"></i><span>Offline</span></button>
     </nav>
   </div>
 
-  <!-- Modal Detalhes da Entrega -->
-  <div class="modal" id="detalhesEntregaModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">📦 Detalhes da Entrega</h3>
-        <button class="modal-close" onclick="Utils.hideModal('detalhesEntregaModal')">&times;</button>
-      </div>
-      <div class="modal-body" id="detalhesEntregaContent">
-        <!-- Conteúdo dinâmico -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Scripts -->
   <script src="js/utils.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/entregador.js"></script>
+  <script type="module" src="js/api.js"></script>
+  
+  <script>
+    let currentUser = null;
+
+    // Função de inicialização
+    async function initEntregador() {
+      if (window.Auth) {
+        try {
+          // Protege a página para apenas entregadores
+          window.Auth.requireAuth(['entregador']);
+          currentUser = window.Auth.getCurrentUser();
+          
+          if (currentUser) {
+            document.getElementById('entregadorNome').textContent = currentUser.name.split(' ')[0];
+            // Aqui você chamaria as funções de carregar entregas que estão no entregador.js ou api.js
+          }
+        } catch (error) {
+          console.error("Erro ao validar entregador:", error);
+        }
+      } else {
+        setTimeout(initEntregador, 500);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', initEntregador);
+
+    // Funções de interface simples
+    function mostrarAba(aba) {
+      document.getElementById('abaDisponiveis').classList.toggle('hidden', aba !== 'disponiveis');
+      document.getElementById('abaMinhas').classList.toggle('hidden', aba !== 'minhas');
+    }
+
+    function toggleStatus() {
+      const btn = document.getElementById('btnStatus');
+      const nav = document.querySelector('#navStatus span');
+      const isOffline = btn.style.color === 'rgb(204, 204, 204)' || btn.style.color === '';
+      
+      btn.style.color = isOffline ? '#2ecc71' : '#ccc';
+      nav.textContent = isOffline ? 'Online' : 'Offline';
+      Utils.showToast(isOffline ? "Você está Online!" : "Você está Offline", "info");
+    }
+  </script>
 </body>
-  </html>
+</html>
