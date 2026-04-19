@@ -102,26 +102,6 @@
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-    import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCl-U9X9qxohjDpgr8y2pdkS3j-qNm19pk",
-      authDomain: "benaion-delivery.firebaseapp.com",
-      projectId: "benaion-delivery",
-      storageBucket: "benaion-delivery.firebasestorage.app",
-      messagingSenderId: "309927409217",
-      appId: "1:309927409217:web:7a105cb5237b2294b1b8c0",
-      measurementId: "G-TK1KNW14WH"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    window.db = getFirestore(app);
-    window.auth = getAuth(app);
-    console.log("Firebase conectado com sucesso!");
-  </script>
 
   <script src="js/utils.js"></script>
   <script type="module" src="js/api.js"></script>
