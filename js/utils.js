@@ -4,9 +4,8 @@
 
 const Utils = {
   // ========================================
-  // TOAST NOTIFICATIONS
+  // TOAST NOTIFICATIONS (Alertas rápidos)
   // ========================================
-
   showToast(message, type = 'info', duration = 3000) {
     let container = document.querySelector('.toast-container');
     if (!container) {
@@ -37,97 +36,12 @@ const Utils = {
   },
 
   // ========================================
-  // LOADING & STATES
+  // MODAIS (Abertura e Fechamento)
   // ========================================
-
-  showLoading(element, text = 'Carregando...') {
-    element.innerHTML = `
-      <div class="loading" style="text-align:center; padding: 20px;">
-        <div class="spinner"></div>
-        <p>${text}</p>
-      </div>
-    `;
-  },
-
-  showEmptyState(element, icon, title, text, buttonText = null, buttonAction = null) {
-    element.innerHTML = `
-      <div class="empty-state" style="text-align:center; padding: 40px 20px;">
-        <div class="empty-icon" style="font-size: 48px; margin-bottom: 10px;">${icon}</div>
-        <h3 class="empty-title" style="margin-bottom: 5px;">${title}</h3>
-        <p class="empty-text" style="color: var(--gray); margin-bottom: 20px;">${text}</p>
-        ${buttonText ? `<button class="btn btn-primary" onclick="${buttonAction}">${buttonText}</button>` : ''}
-      </div>
-    `;
-  },
-
-  // ========================================
-  // FORMATAÇÃO
-  // ========================================
-
-  formatCurrency(value) {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  },
-
-  formatDateTime(timestamp) {
-    if (!timestamp) return '--/--';
-    const date = new Date(timestamp);
-    return date.toLocaleString('pt-BR');
-  },
-
-  timeAgo(timestamp) {
-    const now = Date.now();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'Agora';
-    if (minutes < 60) return `${minutes}m atrás`;
-    if (hours < 24) return `${hours}h atrás`;
-    return `${days}d atrás`;
-  },
-
-  // ========================================
-  // STATUS MAPS
-  // ========================================
-
-  getStatusText(status) {
-    const statusMap = {
-      'recebido': 'Recebido',
-      'aguardando_entregador': 'Aguardando Entregador',
-      'aceito': 'Aceito',
-      'em_coleta': 'Buscando Pedido',
-      'em_entrega': 'Em Rota de Entrega',
-      'finalizado': 'Entregue ✅',
-      'cancelado': 'Cancelado ✕'
-    };
-    return statusMap[status] || status;
-  },
-
-  getStatusIcon(status) {
-    const iconMap = {
-      'recebido': '📋',
-      'aguardando_entregador': '⏳',
-      'aceito': '✅',
-      'em_coleta': '🏪',
-      'em_entrega': '🛵',
-      'finalizado': '✓',
-      'cancelado': '✕'
-    };
-    return iconMap[status] || '•';
-  },
-
-  // ========================================
-  // MODAIS (Corrigido para usar Display Flex/None)
-  // ========================================
-
   showModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-      modal.style.display = 'flex'; // Garante que o modal apareça
+      modal.style.display = 'flex'; 
       setTimeout(() => modal.classList.add('active'), 10);
       document.body.style.overflow = 'hidden';
     }
@@ -145,45 +59,46 @@ const Utils = {
   },
 
   // ========================================
-  // GOOGLE MAPS (Corrigido URLs)
+  // GOOGLE MAPS (CORRIGIDO)
   // ========================================
-
   openGoogleMaps(origin, destination) {
-    // URL correta para navegação entre dois pontos
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+    // Corrigido para a URL oficial de navegação do Google Maps
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=motorcycle`;
     window.open(url, '_blank');
   },
 
   getAddressLink(address) {
-    // URL correta para apenas localizar um endereço
+    // Corrigido para a URL oficial de busca de endereço
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
   },
 
   // ========================================
-  // OUTROS
+  // FORMATAÇÃO E STATUS
   // ========================================
+  formatCurrency(value) {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  },
 
-  generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+  getStatusText(status) {
+    const statusMap = {
+      'recebido': 'Recebido',
+      'aguardando_entregador': 'Aguardando Entregador',
+      'aceito': 'Aceito',
+      'em_coleta': 'Buscando Pedido',
+      'em_entrega': 'Em Rota de Entrega',
+      'finalizado': 'Entregue ✅',
+      'cancelado': 'Cancelado ✕'
+    };
+    return statusMap[status] || status;
   },
 
   vibrate(pattern = [200]) {
     if ('vibrate' in navigator) navigator.vibrate(pattern);
-  },
-
-  playNotificationSound() {
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    audio.play().catch(() => {});
-  },
-
-  async requestNotificationPermission() {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      return permission === 'granted';
-    }
-    return false;
   }
 };
 
-// Tornar global
+// Tornar global para que o index.html consiga ler
 window.Utils = Utils;
