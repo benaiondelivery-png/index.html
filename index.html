@@ -22,7 +22,7 @@
     <div class="login-card">
       <h2 style="text-align: center; margin-bottom: 24px; color: var(--dark);">Entrar</h2>
 
-      <button class="btn btn-white" onclick="Utils.showToast('Login Google em breve', 'info')">
+      <button class="btn btn-white" onclick="handleGoogleInfo()">
         <i class="fab fa-google"></i>
         Continuar com Google
       </button>
@@ -48,7 +48,7 @@
 
       <div class="divider">não tem conta?</div>
 
-      <button class="btn btn-outline" onclick="Utils.showModal('registerModal')">
+      <button class="btn btn-outline" onclick="handleOpenRegister()">
         <i class="fas fa-user-plus"></i>
         Criar Conta
       </button>
@@ -56,7 +56,7 @@
 
     <div style="text-align: center; margin-top: 24px; color: var(--white); opacity: 0.9;">
       <p style="font-size: 13px;">Laranjal do Jari • Monte Dourado</p>
-      <p style="font-size: 12px; margin-top: 8px;">v1.0.0</p>
+      <p style="font-size: 12px; margin-top: 8px;">v1.4.0</p>
     </div>
   </div>
 
@@ -64,7 +64,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 class="modal-title">Criar Conta</h3>
-        <button class="modal-close" onclick="Utils.hideModal('registerModal')">&times;</button>
+        <button class="modal-close" onclick="handleCloseRegister()">&times;</button>
       </div>
       <div class="modal-body">
         <form id="registerForm" onsubmit="handleRegister(event)">
@@ -97,9 +97,27 @@
     </div>
   </div>
 
+  <script src="js/utils.js"></script>
   <script type="module" src="js/api.js?v=1.4"></script>
 
   <script>
+    // Funções de interface para evitar erro se Utils não carregar
+    function handleOpenRegister() {
+      if (window.Utils) Utils.showModal('registerModal');
+      else document.getElementById('registerModal').style.display = 'flex';
+    }
+
+    function handleCloseRegister() {
+      if (window.Utils) Utils.hideModal('registerModal');
+      else document.getElementById('registerModal').style.display = 'none';
+    }
+
+    function handleGoogleInfo() {
+      const msg = 'Login Google em breve';
+      if (window.Utils) Utils.showToast(msg, 'info');
+      else alert(msg);
+    }
+
     // LOGIN
     async function handleEmailLogin(event) {
       event.preventDefault();
@@ -107,7 +125,7 @@
       const originalText = btn.innerHTML;
       
       if (!window.Auth) {
-        Utils.showToast("Conectando ao banco de dados...", "info");
+        alert("O sistema ainda está conectando ao Firebase. Aguarde 2 segundos.");
         return;
       }
 
@@ -120,7 +138,7 @@
         await window.Auth.loginWithEmail(email, password);
         window.Auth.redirectToDashboard();
       } catch (error) {
-        Utils.showToast(error.message, 'error');
+        alert("Erro no Login: " + error.message);
         btn.disabled = false;
         btn.innerHTML = originalText;
       }
@@ -133,7 +151,7 @@
       const originalText = btn.innerHTML;
 
       if (!window.Auth) {
-        Utils.showToast("Aguarde o carregamento...", "info");
+        alert("Erro: Conexão com Firebase não estabelecida.");
         return;
       }
 
@@ -149,17 +167,13 @@
 
       try {
         await window.Auth.register(dadosParaCadastro);
-        Utils.showToast('Conta criada com sucesso!', 'success');
-        
-        setTimeout(() => {
-          window.Auth.redirectToDashboard();
-        }, 1200);
-        } catch (error) {
-  alert("ERRO DO FIREBASE: " + error.message); // Isso vai te dizer o motivo real
-  btn.disabled = false;
-  btn.innerHTML = originalText;
-}
-  
+        alert('Conta criada com sucesso!');
+        setTimeout(() => { window.Auth.redirectToDashboard(); }, 1000);
+      } catch (error) {
+        alert("ERRO DO FIREBASE: " + error.message);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
     }
   </script>
 </body>
