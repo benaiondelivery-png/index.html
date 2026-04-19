@@ -53,6 +53,11 @@
         Criar Conta
       </button>
     </div>
+
+    <div style="text-align: center; margin-top: 24px; color: var(--white); opacity: 0.9;">
+      <p style="font-size: 13px;">Laranjal do Jari • Monte Dourado</p>
+      <p style="font-size: 12px; margin-top: 8px;">v1.0.0</p>
+    </div>
   </div>
 
   <div class="modal" id="registerModal">
@@ -93,7 +98,7 @@
   </div>
 
   <script src="js/utils.js"></script>
-  <script type="module" src="js/api.js?v=1.3"></script>
+  <script type="module" src="js/api.js?v=1.4"></script>
 
   <script>
     // LOGIN
@@ -103,7 +108,7 @@
       const originalText = btn.innerHTML;
       
       if (!window.Auth) {
-        Utils.showToast("Sistema carregando, aguarde um segundo...", "info");
+        Utils.showToast("Conectando ao banco de dados...", "info");
         return;
       }
 
@@ -129,7 +134,7 @@
       const originalText = btn.innerHTML;
 
       if (!window.Auth) {
-        Utils.showToast("Conectando ao servidor...", "info");
+        Utils.showToast("Aguarde o carregamento...", "info");
         return;
       }
 
@@ -144,18 +149,16 @@
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando...';
 
       try {
-        console.log("Enviando dados para o Firebase...");
         await window.Auth.register(dadosParaCadastro);
-        
         Utils.showToast('Conta criada com sucesso!', 'success');
         
         setTimeout(() => {
           window.Auth.redirectToDashboard();
-        }, 1000);
+        }, 1200);
         
       } catch (error) {
         console.error("Erro no cadastro:", error);
-        Utils.showToast(error.message || 'Erro ao criar conta', 'error');
+        alert(error.message || 'Erro ao criar conta'); // Alert ajuda a ler o erro no celular
         btn.disabled = false;
         btn.innerHTML = originalText;
       }
@@ -163,4 +166,3 @@
   </script>
 </body>
 </html>
-
