@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, where, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCl-U9X9qxohjDpgr8y2pdkS3j-qNm19pk",
@@ -12,12 +12,13 @@ const firebaseConfig = {
   measurementId: "G-TK1KNW14WH"
 };
 
-// Inicialização
+// --- INICIALIZAÇÃO ---
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
+// --- TABELA DE TAXAS OFICIAL BENAION ---
 const TABELA_TAXAS = {
   "Agreste": 5, "Nova esperança": 6, "Prosperidade": 6, "Castanheira": 6,
   "Cajari": 7, "Rodovia do gogó": 7, "buritizal": 7, "Sarney": 8,
@@ -25,104 +26,152 @@ const TABELA_TAXAS = {
   "José cesário": 6, "Malvinas": 8, "samaúma": 15, "monte dourado": 30
 };
 
-// Função para calcular a taxa conforme sua regra de logística
 export function calcularTaxa(bairroRetirada, bairroEntrega, adicionais = 0) {
   const baseAgreste = 5;
   const taxaRet = TABELA_TAXAS[bairroRetirada] || 7;
   const taxaEnt = TABELA_TAXAS[bairroEntrega] || 7;
-  
   const diferenca = taxaEnt - baseAgreste;
-  let total = taxaRet + (diferenca > 0 ? diferenca : 0);
-  
-  return total + adicionais;
+  return taxaRet + (diferenca > 0 ? diferenca : 0) + adicionais;
 }
 
-
+// --- NÚCLEO API ---
 const API = {
-  async createUser(data) {
-    try {
-      if (!data.name || !data.email) throw new Error("Dados incompletos.");
-
-      const docRef = await addDoc(collection(db, "users"), {
-        name: data.name,
-        email: data.email,
-        password: data.password || "", // Google não tem senha no banco
-        userType: data.userType || "cliente",
-        created_at: new Date().toISOString()
-      });
-
-      return { id: docRef.id, ...data };
-    } catch (e) {
-      console.error("Erro ao criar usuário:", e);
-      throw e;
-    }
+  // Busca perfil no Firestore pelo ID do Firebase (UID)
+  async getUserProfile(uid) {
+    const docRef = doc(db, "users", uid);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
   },
-  
-  async getUserByEmail(email) {
-    try {
-      const q = query(collection(db, "users"), where("email", "==", email));
-      const querySnapshot = await getDocs(q);
-      if (querySnapshot.empty) return null;
-      return { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
-    } catch (e) {
-      throw new Error("Erro ao consultar banco de dados.");
-    }
+
+  async updateUser(uid, data) {
+    const docRef = doc(db, "users", uid);
+    await updateDoc(docRef, { ...data, last_update: new Date().toISOString() });
+  },
+
+  // Criar ou Atualizar usuário no banco
+  async saveUserToFirestore(uid, userData) {
+    await setDoc(doc(db, "users", uid), {
+      ...userData,
+      updated_at: new Date().toISOString()
+    }, { merge: true });
   }
 };
 
+// --- NÚCLEO DE AUTENTICAÇÃO ---
 const Auth = {
+  // Login com Google aprimorado
   async loginWithGoogle() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const userGoogle = result.user;
+      const user = result.user;
 
-      // 1. Verifica se já tem perfil no Firestore
-      let userProfile = await API.getUserByEmail(userGoogle.email);
+      // Busca se já existe perfil
+      let profile = await API.getUserProfile(user.uid);
 
-      // 2. Se não existir, cria um perfil automático de CLIENTE
-      if (!userProfile) {
-        userProfile = await API.createUser({
-          name: userGoogle.displayName,
-          email: userGoogle.email,
-          userType: "cliente",
-          password: "login_google"
-        });
+      if (!profile) {
+        // Se é novo, salva como cliente por padrão (ou o que estiver no localStorage do registro)
+        const pendingType = localStorage.getItem('pending_user_type') || 'cliente';
+        profile = {
+          name: user.displayName,
+          email: user.email,
+          userType: pendingType,
+          photo: user.photoURL,
+          online: false,
+          created_at: new Date().toISOString()
+        };
+        await API.saveUserToFirestore(user.uid, profile);
       }
 
-      localStorage.setItem('benaion_user', JSON.stringify(userProfile));
-      window.location.href = "cliente.html";
-      return userProfile;
+      localStorage.setItem('benaion_user', JSON.stringify({ id: user.uid, ...profile }));
+      this.redirectToDashboard();
     } catch (error) {
-      console.error("Erro Google Auth:", error);
-      throw new Error("Falha no login com Google.");
+      console.error("Erro Google:", error);
+      throw error;
     }
   },
 
-  async loginWithEmail(email, password) {
-    const user = await API.getUserByEmail(email);
-    if (!user || user.password !== password) throw new Error('E-mail ou senha incorretos');
-    localStorage.setItem('benaion_user', JSON.stringify(user));
-    return user;
-  },
-  
+  // Cadastro com Email + Senha Real no Firebase Auth
   async register(data) {
-    if (!data.email || !data.password || !data.name) throw new Error("Preencha tudo!");
-    const user = await API.createUser(data);
-    localStorage.setItem('benaion_user', JSON.stringify(user));
-    return user;
+    try {
+      // 1. Cria o usuário no Firebase Auth (Seguro)
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const uid = userCredential.user.uid;
+
+      // 2. Salva os dados extras no Firestore
+      const profile = {
+        name: data.name,
+        email: data.email,
+        userType: data.userType,
+        storeName: data.storeName || null,
+        online: false,
+        created_at: new Date().toISOString()
+      };
+
+      await API.saveUserToFirestore(uid, profile);
+      localStorage.setItem('benaion_user', JSON.stringify({ id: uid, ...profile }));
+      return { id: uid, ...profile };
+    } catch (error) {
+      console.error("Erro Cadastro:", error);
+      throw error;
+    }
+  },
+
+  // Login com Email Real
+  async loginWithEmail(email, password) {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const profile = await API.getUserProfile(userCredential.user.uid);
+      
+      localStorage.setItem('benaion_user', JSON.stringify(profile));
+      return profile;
+    } catch (error) {
+      throw new Error("E-mail ou senha inválidos.");
+    }
+  },
+
+  logout() {
+    auth.signOut();
+    localStorage.removeItem('benaion_user');
+    window.location.href = 'index.html';
+  },
+
+  getCurrentUser() {
+    return JSON.parse(localStorage.getItem('benaion_user'));
+  },
+
+  requireAuth(allowedTypes = []) {
+    const user = this.getCurrentUser();
+    if (!user) {
+      window.location.href = 'index.html';
+      return false;
+    }
+    if (allowedTypes.length > 0 && !allowedTypes.includes(user.userType)) {
+      this.redirectToDashboard();
+      return false;
+    }
+    return true;
   },
 
   redirectToDashboard() {
-    const user = JSON.parse(localStorage.getItem('benaion_user'));
-    if (user && user.userType) {
-      window.location.href = `${user.userType}.html`; 
-    } else {
-      window.location.href = 'index.html';
+    const user = this.getCurrentUser();
+    if (user) {
+      window.location.href = `${user.userType}.html`;
     }
   }
 };
+
+// --- MONITOR DE ESTADO DO AUTH ---
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("🔥 Benaion: Usuário conectado via Firebase");
+  } else {
+    console.log("❄️ Benaion: Nenhum usuário ativo");
+  }
+});
 
 // EXPOSIÇÃO GLOBAL
 window.API = API;
 window.Auth = Auth;
-console.log("Benaion API v1.5 - Google Auth Ativo!");
+window.db = db; // Útil para debug ou chamadas diretas
+console.log("Benaion API v1.6 - Firebase Nativo Ativo!");
+
