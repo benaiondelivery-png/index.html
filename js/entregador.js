@@ -1,164 +1,196 @@
 // ========================================
-// BENAION DELIVERY - PAINEL DO ENTREGADOR
+// BENAION DELIVERY - PAINEL DO ENTREGADOR (V1.6.0)
 // ========================================
 
 let currentUser = null;
-let pedidosDisponiveis = [];
-let minhasEntregas = [];
-let historico = [];
-
-// ========================================
-// INICIALIZAÇÃO SEGURA (Aguarda o Firebase)
-// ========================================
+let monitorPedidos = null;
 
 async function initEntregador() {
-  // Verifica se os módulos globais já foram carregados pelo api.js
-  if (window.Auth && window.API) {
+  if (window.Auth && window.API && window.Utils) {
     try {
-      // Verificar autenticação
-      window.Auth.requireAuth(['entregador']);
+      // 1. Proteção de Rota
+      if (!window.Auth.requireAuth(['entregador'])) return;
+      
       currentUser = window.Auth.getCurrentUser();
 
-      // Mostrar nome do entregador
+      // 2. Interface Inicial
       document.getElementById('entregadorNome').textContent = currentUser.name.split(' ')[0];
       
-      // Verificar e atualizar status
-      await verificarStatus();
+      // 3. Sincronização de Status com o Banco
+      await sincronizarStatusInicial();
       
-      // Carregar dados iniciais
+      // 4. Carga de Dados e Real-time
       await carregarEstatisticas();
       await carregarPedidos();
       
-      // Ciclo de atualização
-      setInterval(async () => {
-        await carregarPedidos();
-      }, 15000);
+      // Monitoramento constante (reduzido para 10s para maior agilidade)
+      if (monitorPedidos) clearInterval(monitorPedidos);
+      monitorPedidos = setInterval(carregarPedidos, 10000);
       
-      await Utils.requestNotificationPermission();
+      // 5. Permissões de Notificação (Essencial para novos pedidos)
+      window.Utils.requestNotificationPermission();
+
     } catch (error) {
-      console.error('Erro na inicialização:', error);
+      console.error('Erro ao iniciar painel:', error);
+      window.Utils.showToast('Erro de conexão', 'error');
     }
   } else {
-    // Tenta novamente em 500ms se o api.js ainda estiver carregando
-    setTimeout(initEntregador, 500);
+    setTimeout(initEntregador, 300);
   }
 }
 
-document.addEventListener('DOMContentLoaded', initEntregador);
-
 // ========================================
-// STATUS ONLINE/OFFLINE
+// GESTÃO DE DISPONIBILIDADE
 // ========================================
 
-async function verificarStatus() {
-  const user = await window.API.getUser(currentUser.id);
-  atualizarUIStatus(user.online);
+async function sincronizarStatusInicial() {
+  // Busca o status atualizado no Firestore para garantir
+  const perfil = await window.API.getUserProfile(currentUser.id);
+  if (perfil) {
+    currentUser.online = perfil.online || false;
+    atualizarUIStatus(currentUser.online);
+  }
 }
 
 function atualizarUIStatus(online) {
-  const btnStatus = document.getElementById('btnStatus');
+  const dot = document.querySelector('.status-dot');
+  const txtStatus = document.getElementById('txtStatus');
   const navStatus = document.getElementById('navStatus');
-  
+  const btnStatusHeader = document.getElementById('btnStatusHeader');
+
   if (online) {
-    btnStatus.style.color = '#4CAF50';
-    navStatus.classList.add('active');
-    navStatus.innerHTML = '<i class="fas fa-circle"></i><span>Online</span>';
+    if (dot) dot.className = "fas fa-circle status-dot online";
+    if (txtStatus) txtStatus.innerHTML = '<i class="fas fa-circle status-dot online"></i> Disponível';
+    if (btnStatusHeader) btnStatusHeader.style.color = "#2ecc71";
+    window.Utils.showToast("Você está visível para novas entregas!", "success");
   } else {
-    btnStatus.style.color = '#999';
-    navStatus.classList.remove('active');
-    navStatus.innerHTML = '<i class="fas fa-circle"></i><span>Offline</span>';
+    if (dot) dot.className = "fas fa-circle status-dot offline";
+    if (txtStatus) txtStatus.innerHTML = '<i class="fas fa-circle status-dot offline"></i> Offline';
+    if (btnStatusHeader) btnStatusHeader.style.color = "#ccc";
   }
-  
-  currentUser.online = online;
 }
 
 async function toggleStatus() {
   try {
     const novoStatus = !currentUser.online;
     await window.API.updateUser(currentUser.id, { online: novoStatus });
+    currentUser.online = novoStatus;
     atualizarUIStatus(novoStatus);
-    
-    if (novoStatus) {
-      Utils.showToast('Você está online! 🟢', 'success');
-      await carregarPedidos();
-    } else {
-      Utils.showToast('Você está offline ⚫', 'info');
-    }
   } catch (error) {
-    Utils.showToast('Erro ao alterar status', 'error');
+    window.Utils.showToast('Erro ao atualizar status', 'error');
   }
 }
 
 // ========================================
-// PEDIDOS E LOGÍSTICA
+// LOGÍSTICA DE ENTREGAS
 // ========================================
 
 async function carregarPedidos() {
   try {
-    pedidosDisponiveis = await window.API.getPedidosDisponiveis();
-    const todosPedidos = await window.API.getPedidosByUser(currentUser.id, 'entregador');
+    // Busca pedidos disponíveis e as que ele já aceitou
+    const todos = await window.API.getPedidos(1, 100);
     
-    minhasEntregas = todosPedidos.filter(p => ['aceito', 'em_coleta', 'em_entrega'].includes(p.status));
-    historico = todosPedidos.filter(p => ['finalizado', 'cancelado'].includes(p.status));
+    const disponiveis = todos.data.filter(p => p.status === 'pendente');
+    const minhas = todos.data.filter(p => 
+        p.entregadorId === currentUser.id && 
+        ['aceito', 'em_transito'].includes(p.status)
+    );
+
+    renderizarListaDisponiveis(disponiveis);
+    renderizarMinhasEntregas(minhas);
     
-    // Renderização automática baseada na aba ativa
-    const abaAtiva = document.querySelector('.nav-item.active span')?.textContent.toLowerCase();
-    if (abaAtiva?.includes('disponíveis')) renderizarPedidosDisponiveis();
-    else if (abaAtiva?.includes('minhas')) renderizarMinhasEntregas();
   } catch (error) {
-    console.error('Erro ao carregar pedidos:', error);
+    console.log('Erro na atualização de pedidos');
   }
 }
 
-async function aceitarPedido(pedidoId) {
+function renderizarListaDisponiveis(pedidos) {
+  const container = document.getElementById('listaPedidosDisponiveis');
+  if (!container) return;
+
+  if (pedidos.length === 0) {
+    container.innerHTML = '<p class="text-center py-4">Nenhum pedido na região...</p>';
+    return;
+  }
+
+  container.innerHTML = pedidos.map(p => `
+    <div class="pedido-card animate__animated animate__pulse">
+      <div class="d-flex justify-between">
+        <span class="badge-loja">${p.parceiroNome || 'Venda Direta'}</span>
+        <span class="valor-taxa">R$ ${parseFloat(p.taxaEntrega).toFixed(2)}</span>
+      </div>
+      <div class="rota-info">
+        <p><i class="fas fa-store"></i> <b>Origem:</b> ${p.bairroRetirada}</p>
+        <p><i class="fas fa-map-marker-alt"></i> <b>Destino:</b> ${p.bairroEntrega}</p>
+      </div>
+      <button class="btn btn-primary w-100 mt-2" onclick="aceitarPedido('${p.id}')">
+        ACEITAR CORRIDA
+      </button>
+    </div>
+  `).join('');
+}
+
+async function aceitarPedido(id) {
+  if (!currentUser.online) {
+    window.Utils.showToast("Fique Online para aceitar pedidos!", "warning");
+    return;
+  }
+
   try {
-    await window.API.aceitarPedido(pedidoId, currentUser.id, currentUser.name);
-    Utils.showToast('Pedido aceito! 🎉', 'success');
-    await carregarPedidos();
+    await window.API.updatePedido(id, {
+      entregadorId: currentUser.id,
+      entregadorNome: currentUser.name,
+      status: 'aceito',
+      aceito_em: new Date().toISOString()
+    });
+    
+    window.Utils.showToast("Corrida confirmada!", "success");
     mostrarAba('minhas');
+    carregarPedidos();
   } catch (error) {
-    Utils.showToast('Erro ao aceitar pedido', 'error');
-  }
-}
-
-async function atualizarStatus(pedidoId, novoStatus) {
-  try {
-    await window.API.atualizarStatusPedido(pedidoId, novoStatus);
-    Utils.showToast('Status atualizado!', 'success');
-    
-    if (novoStatus === 'finalizado') {
-      const total = (currentUser.totalDeliveries || 0) + 1;
-      await window.API.updateUser(currentUser.id, { totalDeliveries: total });
-      currentUser.totalDeliveries = total;
-    }
-    await carregarPedidos();
-  } catch (error) {
-    Utils.showToast('Erro ao atualizar status', 'error');
+    window.Utils.showToast("Este pedido já foi aceito", "error");
   }
 }
 
 // ========================================
-// INTERFACE E NAVEGAÇÃO
+// FERRAMENTAS DE CAMINHO (GOOGLE MAPS/WHATSAPP)
 // ========================================
 
-function mostrarAba(aba) {
-  const abas = ['abaDisponiveis', 'abaMinhas', 'abaHistorico'];
-  abas.forEach(id => document.getElementById(id).classList.add('hidden'));
-  
-  const idAtivo = 'aba' + aba.charAt(0).toUpperCase() + aba.slice(1);
-  document.getElementById(idAtivo).classList.remove('hidden');
-  
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  // Lógica para marcar o botão da navegação inferior como ativo
+function abrirNavegacao(endereco) {
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`;
+  window.open(url, '_blank');
 }
+
+function abrirChatCliente(tel) {
+  if(!tel) return window.Utils.showToast("Telefone não cadastrado", "info");
+  window.open(`https://wa.me/55${tel.replace(/\D/g,'')}`, '_blank');
+}
+
+// ========================================
+// FINANCEIRO E STATS
+// ========================================
 
 async function carregarEstatisticas() {
+  const estatisticas = {
+    hoje: 0,
+    saldo: 0
+  };
+  
   try {
-    const stats = await window.API.getEstatisticasEntregador(currentUser.id);
-    document.getElementById('statHoje').textContent = stats.hoje || 0;
-    document.getElementById('statSemana').textContent = stats.semana || 0;
-    document.getElementById('statMes').textContent = stats.mes || 0;
-  } catch (error) {
-    console.error('Erro nas estatísticas:', error);
+    const result = await window.API.getPedidos(1, 500);
+    const concluidosHoje = result.data.filter(p => 
+      p.entregadorId === currentUser.id && 
+      p.status === 'concluido'
+    );
+
+    estatisticas.hoje = concluidosHoje.length;
+    estatisticas.saldo = concluidosHoje.reduce((acc, p) => acc + (p.taxaEntrega || 0), 0);
+
+    document.getElementById('statHoje').textContent = estatisticas.hoje;
+    document.getElementById('statSaldo').textContent = window.Utils.formatCurrency(estatisticas.saldo);
+  } catch (e) {
+    console.warn("Erro ao processar saldo");
   }
 }
+
+document.addEventListener('DOMContentLoaded', initEntregador);
