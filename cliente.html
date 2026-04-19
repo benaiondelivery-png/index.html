@@ -18,8 +18,8 @@
             <img src="https://i.postimg.cc/T2Vt53JP/Vermelho-delivery-logo-20260227-011329-0005.png" alt="Logo Benaion" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
           </div>
           <div class="logo-text">
-            <h1 id="clienteNome">Cliente</h1>
-            <p>Meus Pedidos</p>
+            <h1 id="clienteNome">Carregando...</h1>
+            <p>Painel do Cliente</p>
           </div>
         </div>
         <div class="header-actions">
@@ -29,39 +29,37 @@
     </header>
 
     <main class="page">
-      <div class="card" style="background: linear-gradient(135deg, var(--primary-red), #c00510); color: white; text-align: center;">
-        <h2 style="margin-bottom: 8px;">👋 Bem-vindo!</h2>
-        <p style="opacity: 0.9; font-size: 14px;">Conectando você ao que precisa, rápido e seguro</p>
+      <div class="card" style="background: linear-gradient(135deg, var(--primary-red), #c00510); color: white; text-align: center; padding: 20px;">
+        <h2 style="margin-bottom: 8px;">🚀 Benaion Delivery</h2>
+        <p style="opacity: 0.9; font-size: 14px;">Logística rápida em Laranjal do Jari</p>
       </div>
 
-      <button class="btn btn-primary mb-2" onclick="Utils.showModal('novoPedidoModal')" style="font-size: 18px; padding: 18px;">
-        <i class="fas fa-plus-circle"></i> Fazer Novo Pedido
+      <button class="btn btn-primary mb-2" onclick="Utils.showModal('novoPedidoModal')" style="font-size: 18px; padding: 18px; box-shadow: 0 4px 15px rgba(227, 6, 19, 0.3);">
+        <i class="fas fa-motorcycle"></i> Solicitar Nova Entrega
       </button>
 
-      <div class="card">
-        <h3 style="margin-bottom: 16px; color: var(--primary-red);">🏪 Parceiros Disponíveis</h3>
-        <div id="listaParceiros" style="display: grid; gap: 12px;"></div>
+      <div class="card" style="background: #fff8f8; border: 1px solid #ffcccc;">
+        <h3 style="margin-bottom: 12px; color: var(--primary-red); font-size: 16px;">🏪 Parceiros</h3>
+        <div id="listaParceiros" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;"></div>
       </div>
 
-      <h3 style="margin: 24px 0 16px; color: var(--dark);">📦 Meus Pedidos</h3>
+      <h3 style="margin: 24px 0 12px; color: var(--dark); display: flex; justify-content: space-between;">
+        📦 Meus Pedidos <small id="contadorPedidos" style="font-size: 12px; background: #eee; padding: 2px 8px; border-radius: 10px;">0</small>
+      </h3>
       <div id="listaPedidos"></div>
 
-      <div class="card" style="background: var(--light-gray); margin-top: 24px;">
-        <h4 style="color: var(--primary-red); margin-bottom: 12px;">⚠️ Regras de Transporte</h4>
-        <p style="font-size: 13px; color: var(--gray); line-height: 1.6;">
-          A BENAION DELIVERY NÃO TRANSPORTA:<br>
-          ❌ Bebidas alcoólicas<br>
-          ❌ Cigarros<br>
-          ❌ Drogas<br>
-          ❌ Passageiros
+      <div class="card" style="background: #222; color: #fff; margin-top: 24px; border: none;">
+        <h4 style="color: var(--primary-yellow); margin-bottom: 12px;"><i class="fas fa-shield-alt"></i> Segurança BENAION</h4>
+        <p style="font-size: 12px; opacity: 0.8; line-height: 1.4;">
+          🚫 Não transportamos Bebidas, Cigarros, Drogas ou Pessoas.<br>
+          ✅ Pagamento via PIX ou Cartão direto no app ou ao entregador.
         </p>
       </div>
     </main>
 
     <nav class="bottom-nav">
       <button class="nav-item active"><i class="fas fa-home"></i><span>Início</span></button>
-      <button class="nav-item" onclick="Utils.showModal('novoPedidoModal')"><i class="fas fa-plus-circle"></i><span>Novo</span></button>
-      <button class="nav-item" onclick="mostrarEnderecos()"><i class="fas fa-map-marker-alt"></i><span>Endereços</span></button>
+      <button class="nav-item" onclick="Utils.showModal('novoPedidoModal')"><i class="fas fa-plus-circle"></i><span>Pedir</span></button>
       <button class="nav-item" onclick="mostrarPerfil()"><i class="fas fa-user"></i><span>Perfil</span></button>
     </nav>
   </div>
@@ -69,231 +67,31 @@
   <div class="modal" id="novoPedidoModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title">🛒 Novo Pedido</h3>
+        <h3 class="modal-title">📝 Dados da Entrega</h3>
         <button class="modal-close" onclick="Utils.hideModal('novoPedidoModal')">&times;</button>
       </div>
       <div class="modal-body">
         <form id="novoPedidoForm" onsubmit="criarPedido(event)">
+          
+          <label class="form-label">Onde vamos buscar? (Retirada)</label>
+          <div class="form-group-flex" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <select class="form-control" id="pedidoBairroRetirada" required onchange="atualizarTaxaEstimada()">
+              <option value="Agreste">Bairro: Agreste</option>
+              <option value="Nova esperança">Nova esperança</option>
+              <option value="Prosperidade">Prosperidade</option>
+              <option value="Castanheira">Castanheira</option>
+              <option value="Cajari">Cajari</option>
+              <option value="centro">Centro</option>
+              <option value="Malvinas">Malvinas</option>
+              <option value="monte dourado">Monte Dourado</option>
+              </select>
+            <input type="text" class="form-control" id="pedidoRetiradaLocal" required placeholder="Ex: Panificadora">
+          </div>
+
+          <label class="form-label" style="margin-top:15px;">O que deve ser entregue?</label>
+          <input type="text" class="form-control" id="pedidoProduto" required placeholder="Ex: 1 Envelope, 2 Marmitas...">
+
+          <label class="form-label" style="margin-top:15px;">Para onde vamos levar? (Destino)</label>
           <div class="form-group">
-            <label class="form-label">Escolha o Parceiro (Opcional)</label>
-            <select class="form-control" id="pedidoParceiro">
-              <option value="">Não especificado</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Endereço de Retirada *</label>
-            <input type="text" class="form-control" id="pedidoRetirada" required placeholder="Onde buscar o produto">
-          </div>
-          <div class="form-group">
-            <label class="form-label">O que deseja? *</label>
-            <input type="text" class="form-control" id="pedidoProduto" required placeholder="Ex: 1 Pizza grande">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Valor (R$) *</label>
-            <input type="number" class="form-control" id="pedidoValor" required step="0.01" min="0">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Meu Endereço de Entrega *</label>
-            <select class="form-control" id="pedidoEndereco" required onchange="toggleNovoEndereco()">
-              <option value="">Selecione...</option>
-              <option value="novo">➕ Adicionar novo endereço</option>
-            </select>
-          </div>
-          <div id="novoEnderecoGroup" style="display: none;">
-            <div class="form-group">
-              <input type="text" class="form-control" id="pedidoNovoEndereco" placeholder="Digite seu endereço completo">
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Bairro *</label>
-            <select class="form-control" id="pedidoBairro" required>
-              <option value="Laranjal do Jari">Laranjal do Jari</option>
-              <option value="Monte Dourado">Monte Dourado</option>
-              <option value="Vitória do Jari">Vitória do Jari</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Forma de Pagamento *</label>
-            <select class="form-control" id="pedidoPagamento" required onchange="toggleTroco()">
-              <option value="pix">PIX</option>
-              <option value="cartao">Cartão</option>
-              <option value="dinheiro">Dinheiro</option>
-            </select>
-          </div>
-          <div class="form-group" id="trocoGroup" style="display: none;">
-            <label class="form-label">Precisa de troco para quanto?</label>
-            <input type="number" class="form-control" id="pedidoTroco" step="0.01" min="0">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Observações</label>
-            <textarea class="form-control" id="pedidoObs" placeholder="Informações adicionais..."></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Solicitar Entrega</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal" id="detalhesPedidoModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">📦 Detalhes do Pedido</h3>
-        <button class="modal-close" onclick="Utils.hideModal('detalhesPedidoModal')">&times;</button>
-      </div>
-      <div class="modal-body" id="detalhesPedidoContent"></div>
-    </div>
-  </div>
-
-  <script src="js/utils.js"></script>
-  <script type="module" src="js/api.js"></script>
-
-  <script>
-    let currentUser = null;
-    let pedidos = [];
-    let enderecos = [];
-    let parceiros = [];
-
-    // Proteção para garantir que o Auth (do api.js) carregou antes de ser usado
-    async function init() {
-      if (window.Auth) {
-        try {
-          window.Auth.requireAuth(['cliente']);
-          currentUser = window.Auth.getCurrentUser();
-          document.getElementById('clienteNome').textContent = currentUser.name.split(' ')[0];
-          await carregarDados();
-          setInterval(() => carregarDados(), 30000);
-        } catch (error) {
-          console.error('Erro de autenticação:', error);
-        }
-      } else {
-        setTimeout(init, 500); // Tenta novamente em 0.5s se o api.js demorar
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
-
-    async function carregarDados() {
-      if (!window.API || !currentUser) return;
-      try {
-        const [pedidosResult, enderecosData, parceirosResult] = await Promise.all([
-          window.API.getPedidosByUser(currentUser.id, 'cliente'),
-          window.API.getEnderecos(currentUser.id),
-          window.API.getParceiros(1, 100)
-        ]);
-        
-        pedidos = pedidosResult;
-        enderecos = enderecosData;
-        parceiros = parceirosResult.data.filter(p => p.status === 'ativo');
-        
-        renderizarPedidos();
-        renderizarParceiros();
-        renderizarEnderecosSelect();
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-      }
-    }
-
-    // Mantendo todas as suas funções de renderização originais
-    function renderizarParceiros() {
-      const container = document.getElementById('listaParceiros');
-      if (parceiros.length === 0) {
-        container.innerHTML = '<p style="color: var(--gray); font-size: 13px;">Nenhum parceiro disponível</p>';
-        return;
-      }
-      parceiros.sort((a, b) => (b.premium ? 1 : 0) - (a.premium ? 1 : 0));
-      container.innerHTML = parceiros.slice(0, 5).map(p => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--light-gray); border-radius: 8px;">
-          <div>
-            <div style="font-weight: 600; color: var(--dark);">${p.nomeComercio} ${p.premium ? '⭐' : ''}</div>
-            <div style="font-size: 12px; color: var(--gray);">${p.tipoComercio} • ${p.telefone}</div>
-          </div>
-          <button class="btn btn-small btn-outline" onclick="pedirDe('${p.id}', '${p.nomeComercio}', '${p.endereco}')">
-            <i class="fas fa-shopping-bag"></i>
-          </button>
-        </div>
-      `).join('');
-    }
-
-    function renderizarEnderecosSelect() {
-      const select = document.getElementById('pedidoEndereco');
-      const opcoes = enderecos.map(e => `<option value="${e.endereco}">${e.apelido || e.endereco}</option>`).join('');
-      select.innerHTML = `<option value="">Selecione...</option>${opcoes}<option value="novo">➕ Adicionar novo endereço</option>`;
-      const selectParceiros = document.getElementById('pedidoParceiro');
-      selectParceiros.innerHTML = '<option value="">Não especificado</option>' + 
-        parceiros.map(p => `<option value="${p.id}">${p.nomeComercio}</option>`).join('');
-    }
-
-    function renderizarPedidos() {
-      const container = document.getElementById('listaPedidos');
-      if (pedidos.length === 0) {
-        Utils.showEmptyState(container, '📦', 'Nenhum pedido ainda', 'Faça seu primeiro pedido agora!');
-        return;
-      }
-      pedidos.sort((a, b) => b.created_at - a.created_at);
-      container.innerHTML = pedidos.map(p => `
-        <div class="pedido-card" onclick="verDetalhes('${p.id}')">
-          <div class="pedido-header">
-            <div class="pedido-numero">#${p.id.substring(0, 8)}</div>
-            <span class="status-badge status-${p.status}">${Utils.getStatusIcon(p.status)} ${Utils.getStatusText(p.status)}</span>
-          </div>
-          <div class="pedido-info">
-            <div class="info-row"><span class="info-label">📦 Produto:</span><span>${p.produto}</span></div>
-            <div class="info-row"><span class="info-label">📍 Entrega:</span><span>${p.enderecoEntrega}</span></div>
-            <div class="info-row"><span class="info-label">💰 Valor:</span><span>${Utils.formatCurrency(p.valor)}</span></div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    async function criarPedido(e) {
-      e.preventDefault();
-      const btn = e.target.querySelector('button[type="submit"]');
-      btn.disabled = true;
-      try {
-        const data = {
-          clienteId: currentUser.id,
-          clienteNome: currentUser.name,
-          produto: document.getElementById('pedidoProduto').value,
-          valor: parseFloat(document.getElementById('pedidoValor').value),
-          enderecoRetirada: document.getElementById('pedidoRetirada').value,
-          enderecoEntrega: document.getElementById('pedidoEndereco').value === 'novo' ? document.getElementById('pedidoNovoEndereco').value : document.getElementById('pedidoEndereco').value,
-          bairro: document.getElementById('pedidoBairro').value,
-          formaPagamento: document.getElementById('pedidoPagamento').value,
-          status: 'aguardando_entregador'
-        };
-        await window.API.createPedido(data);
-        Utils.showToast('Pedido criado com sucesso!', 'success');
-        Utils.hideModal('novoPedidoModal');
-        await carregarDados();
-      } catch (error) {
-        Utils.showToast('Erro ao criar pedido', 'error');
-      }
-      btn.disabled = false;
-    }
-
-    function pedirDe(parceiroId, nome, endereco) {
-      Utils.showModal('novoPedidoModal');
-      document.getElementById('pedidoParceiro').value = parceiroId;
-      document.getElementById('pedidoRetirada').value = endereco;
-    }
-
-    function toggleNovoEndereco() {
-      const valor = document.getElementById('pedidoEndereco').value;
-      document.getElementById('novoEnderecoGroup').style.display = valor === 'novo' ? 'block' : 'none';
-    }
-
-    function toggleTroco() {
-      const pag = document.getElementById('pedidoPagamento').value;
-      document.getElementById('trocoGroup').style.display = pag === 'dinheiro' ? 'block' : 'none';
-    }
-
-    function mostrarEnderecos() {
-      alert('Endereços: ' + (enderecos.length > 0 ? enderecos.map(e => e.endereco).join('\n') : 'Nenhum'));
-    }
-
-    function mostrarPerfil() {
-      alert(`Usuário: ${currentUser.name}\nEmail: ${currentUser.email}`);
-    }
-  </script>
-</body>
-</html>
+             <select class="form-control" id="pedidoBairroEntrega" required onchange="atualizarTaxaEstimada()">
+               <option value="">Selecione o Bairro de Destino</option>
