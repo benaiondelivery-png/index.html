@@ -18,6 +18,27 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
+const TABELA_TAXAS = {
+  "Agreste": 5.00,
+  "Nova esperança": 6.00,
+  "Prosperidade": 6.00,
+  "Castanheira": 6.00,
+  "Cajari": 7.00,
+  "Rodovia do gogó": 7.00,
+  "buritizal": 7.00,
+  "Sarney": 8.00,
+  "Nazaré mineiro": 10.00,
+  "centro": 6.00,
+  "mirilandia": 6.00,
+  "Rio branco": 7.00,
+  "José cesário": 6.00,
+  "Malvinas": 8.00,
+  "samaúma": 15.00,
+  "monte dourado": 30.00
+};
+
+const BASE_AGRESTE = 5.00;
+
 const API = {
   async createUser(data) {
     try {
