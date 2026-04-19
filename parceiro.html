@@ -23,7 +23,9 @@
           </div>
         </div>
         <div class="header-actions">
-          <button class="header-btn" onclick="window.Auth.logout()"><i class="fas fa-sign-out-alt"></i></button>
+          <button class="header-btn" onclick="window.Auth.logout()" title="Sair">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
         </div>
       </div>
     </header>
@@ -41,24 +43,90 @@
       </div>
 
       <button class="btn btn-primary mb-2" onclick="Utils.showModal('novoPedidoModal')">
-        <i class="fas fa-plus"></i> Novo Pedido
+        <i class="fas fa-plus"></i> Novo Pedido Manual
       </button>
 
       <div id="listaPedidos"></div>
     </main>
 
     <nav class="bottom-nav">
-      <button class="nav-item active"><i class="fas fa-list"></i><span>Pedidos</span></button>
-      <button class="nav-item" onclick="Utils.showModal('novoPedidoModal')"><i class="fas fa-plus-circle"></i><span>Novo</span></button>
-      <button class="nav-item" onclick="mostrarPerfil()"><i class="fas fa-user"></i><span>Perfil</span></button>
+      <button class="nav-item active" onclick="carregarDados()">
+        <i class="fas fa-list"></i>
+        <span>Pedidos</span>
+      </button>
+      <button class="nav-item" onclick="Utils.showModal('novoPedidoModal')">
+        <i class="fas fa-plus-circle"></i>
+        <span>Novo</span>
+      </button>
+      <button class="nav-item" onclick="Utils.showToast('Funcionalidade de perfil em breve!', 'info')">
+        <i class="fas fa-user"></i>
+        <span>Perfil</span>
+      </button>
     </nav>
   </div>
 
   <div class="modal" id="novoPedidoModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title">📋 Novo Pedido</h3>
+        <h3 class="modal-title">📋 Lançar Novo Pedido</h3>
         <button class="modal-close" onclick="Utils.hideModal('novoPedidoModal')">&times;</button>
       </div>
       <div class="modal-body">
-        <form id="novoPedidoForm" onsubmit="
+        <form id="novoPedidoForm" onsubmit="criarNovoPedido(event)">
+          <div class="form-group">
+            <label class="form-label">Nome do Cliente *</label>
+            <input type="text" class="form-control" id="pedidoNome" required placeholder="Ex: João Silva">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Produto/Descrição *</label>
+            <textarea class="form-control" id="pedidoProduto" required placeholder="Ex: 2 X-Tudo, 1 Coca 2L"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Valor do Pedido (R$) *</label>
+            <input type="number" class="form-control" id="pedidoValor" required step="0.01" min="0" placeholder="0.00">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Endereço de Entrega *</label>
+            <input type="text" class="form-control" id="pedidoEntrega" required placeholder="Rua, número e referência">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Bairro *</label>
+            <select class="form-control" id="pedidoBairro" required>
+              <option value="">Selecione o bairro...</option>
+              <option value="Laranjal do Jari">Laranjal do Jari</option>
+              <option value="Monte Dourado">Monte Dourado</option>
+              <option value="Vitória do Jari">Vitória do Jari</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Forma de Pagamento *</label>
+            <select class="form-control" id="pedidoPagamento" required onchange="toggleTroco()">
+              <option value="pix">PIX</option>
+              <option value="cartao">Cartão</option>
+              <option value="dinheiro">Dinheiro</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="trocoGroup" style="display: none;">
+            <label class="form-label">Troco para quanto?</label>
+            <input type="number" class="form-control" id="pedidoTroco" step="0.01" placeholder="0.00">
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+            <i class="fas fa-paper-plane"></i> Chamar Entregador
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script type="module" src="js/api.js"></script>
+  <script src="js/parceiro.js"></script>
+</body>
+</html>
