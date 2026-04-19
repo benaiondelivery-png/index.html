@@ -154,13 +154,12 @@
         setTimeout(() => {
           window.Auth.redirectToDashboard();
         }, 1200);
-        
-      } catch (error) {
-        console.error("Erro no cadastro:", error);
-        alert(error.message || 'Erro ao criar conta'); // Alert ajuda a ler o erro no celular
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-      }
+        } catch (error) {
+  alert("ERRO DO FIREBASE: " + error.message); // Isso vai te dizer o motivo real
+  btn.disabled = false;
+  btn.innerHTML = originalText;
+}
+  
     }
   </script>
 </body>
