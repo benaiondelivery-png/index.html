@@ -2,13 +2,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCl-U9X9qxohJDugz8y2pdkSrS9Rmc",
+  apiKey: "AIzaSyCl-U9X9uxohJDugz8y2pdkSrS9Rmc", // Chave correta do seu print
   authDomain: "benaion-delivery.firebaseapp.com",
   projectId: "benaion-delivery",
   storageBucket: "benaion-delivery.appspot.com",
   messagingSenderId: "309927489217",
   appId: "1:309927489217:web:7a105cb5237b2294b1b8c0"
 };
+
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
