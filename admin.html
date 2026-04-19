@@ -7,7 +7,6 @@
   <title>Admin - BENAION DELIVERY</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="manifest" href="manifest.json">
 </head>
 <body>
   <div class="container">
@@ -18,135 +17,93 @@
             <img src="https://i.postimg.cc/T2Vt53JP/Vermelho-delivery-logo-20260227-011329-0005.png" alt="Logo Benaion" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
           </div>
           <div class="logo-text">
-            <h1>BENAION DELIVERY</h1>
-            <p>Painel Administrativo</p>
+            <h1>BENAION ADMIN</h1>
+            <p id="adminStatus">Painel de Controle</p>
           </div>
         </div>
         <div class="header-actions">
-          <button class="header-btn" onclick="carregarNotificacoes()" title="Notificações">
-            <i class="fas fa-bell"></i>
-            <span class="badge" id="notifBadge">0</span>
-          </button>
-          <button class="header-btn" onclick="window.Auth.logout()" title="Sair">
-            <i class="fas fa-sign-out-alt"></i>
-          </button>
+          <button class="header-btn" onclick="window.Auth.logout()"><i class="fas fa-sign-out-alt"></i></button>
         </div>
       </div>
     </header>
 
-    <main class="page" id="mainContent">
-      <div class="stats-grid" id="statsGrid">
+    <main class="page">
+      <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-value" id="statPedidosHoje">0</div>
-          <div class="stat-label">Hoje</div>
+          <div class="stat-value" id="statHoje">0</div>
+          <div class="stat-label">Pedidos Hoje</div>
         </div>
-        <div class="stat-card yellow">
-          <div class="stat-value" id="statPedidosAtivos">0</div>
-          <div class="stat-label">Ativos</div>
+        <div class="stat-card" style="background: var(--primary-yellow);">
+          <div class="stat-value" id="statFaturamento">R$ 0,00</div>
+          <div class="stat-label">Taxas Acumuladas</div>
         </div>
-        <div class="stat-card green">
-          <div class="stat-value" id="statEntregadoresOnline">0</div>
-          <div class="stat-label">Online</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="statPedidosMes">0</div>
-          <div class="stat-label">Mês</div>
+        <div class="stat-card" style="background: #2ecc71; color: white;">
+          <div class="stat-value" id="statAtivos">0</div>
+          <div class="stat-label">Em Entrega</div>
         </div>
       </div>
 
-      <div style="display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px;">
-        <button class="btn btn-small btn-primary" onclick="mostrarAba('pedidos')"><i class="fas fa-list"></i> Pedidos</button>
-        <button class="btn btn-small btn-outline" onclick="mostrarAba('entregadores')"><i class="fas fa-users"></i> Entregadores</button>
-        <button class="btn btn-small btn-outline" onclick="mostrarAba('parceiros')"><i class="fas fa-store"></i> Parceiros</button>
+      <div class="tabs-container" style="display: flex; gap: 10px; margin: 20px 0; overflow-x: auto;">
+        <button class="btn btn-small btn-primary" onclick="mostrarAba('pedidos')">📋 Todos Pedidos</button>
+        <button class="btn btn-small btn-outline" onclick="mostrarAba('parceiros')">🏪 Parceiros</button>
+        <button class="btn btn-small btn-outline" onclick="mostrarAba('usuarios')">👥 Usuários</button>
       </div>
 
       <div id="abaPedidos">
-        <div class="card" style="margin-bottom: 15px;">
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="btn btn-small btn-secondary" onclick="filtrarPedidos('todos')">Todos</button>
-            <button class="btn btn-small btn-outline" onclick="filtrarPedidos('aguardando_entregador')">Aguardando</button>
-            <button class="btn btn-small btn-outline" onclick="filtrarPedidos('em_entrega')">Em Entrega</button>
-          </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h3>Monitoramento de Pedidos</h3>
+          <button class="btn btn-small" onclick="Utils.showModal('novoPedidoModal')">+ Criar Manual</button>
         </div>
-        <div id="listaPedidos"></div>
+        <div id="listaPedidosAdmin"></div>
       </div>
-
-      <div id="abaEntregadores" class="hidden"><div id="listaEntregadores"></div></div>
 
       <div id="abaParceiros" class="hidden">
-        <button class="btn btn-primary mb-2" onclick="Utils.showModal('novoParceiroModal')">
-          <i class="fas fa-plus"></i> Novo Parceiro
-        </button>
-        <div id="listaParceiros"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h3>Lojas Parceiras</h3>
+          <button class="btn btn-small" onclick="Utils.showModal('novoParceiroModal')">+ Nova Loja</button>
+        </div>
+        <div id="listaParceirosAdmin"></div>
       </div>
-    </main>
 
-    <nav class="bottom-nav">
-      <button class="nav-item active" onclick="mostrarAba('pedidos')"><i class="fas fa-list"></i><span>Pedidos</span></button>
-      <button class="nav-item" onclick="Utils.showModal('novoPedidoModal')"><i class="fas fa-plus-circle"></i><span>Novo</span></button>
-      <button class="nav-item" onclick="mostrarAba('entregadores')"><i class="fas fa-users"></i><span>Logística</span></button>
-      <button class="nav-item" onclick="mostrarAba('parceiros')"><i class="fas fa-store"></i><span>Lojas</span></button>
-    </nav>
+      <div id="abaUsuarios" class="hidden">
+        <h3>Entregadores e Clientes</h3>
+        <div id="listaUsuariosAdmin"></div>
+      </div>
+
+    </main>
   </div>
 
   <div class="modal" id="novoPedidoModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title">📋 Novo Pedido Manual</h3>
+        <h3 class="modal-title">Lançar Pedido (Admin)</h3>
         <button class="modal-close" onclick="Utils.hideModal('novoPedidoModal')">&times;</button>
       </div>
       <div class="modal-body">
-        <form id="novoPedidoForm" onsubmit="criarNovoPedido(event)">
+        <form onsubmit="lancarPedidoManual(event)">
           <div class="form-group">
-            <label class="form-label">Cliente *</label>
-            <input type="text" class="form-control" id="pedidoNome" required>
+            <label>Nome do Cliente</label>
+            <input type="text" id="manualCliente" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="form-label">O que deseja? *</label>
-            <input type="text" class="form-control" id="pedidoProduto" required>
+            <label>Produto</label>
+            <input type="text" id="manualProduto" class="form-control" required>
+          </div>
+          <div class="form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div>
+              <label>Bairro Retirada</label>
+              <input type="text" id="manualBairroRet" class="form-control" placeholder="Agreste" required>
+            </div>
+            <div>
+              <label>Bairro Entrega</label>
+              <input type="text" id="manualBairroEnt" class="form-control" placeholder="Cajari" required>
+            </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Valor (R$) *</label>
-            <input type="number" class="form-control" id="pedidoValor" required step="0.01">
+            <label>Taxa de Entrega (R$)</label>
+            <input type="number" id="manualTaxa" class="form-control" step="0.01" required>
           </div>
-          <div class="form-group">
-            <label class="form-label">Endereço de Entrega *</label>
-            <input type="text" class="form-control" id="pedidoEntrega" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Bairro *</label>
-            <select class="form-control" id="pedidoBairro" required>
-              <option value="Laranjal do Jari">Laranjal do Jari</option>
-              <option value="Monte Dourado">Monte Dourado</option>
-            </select>
-          </div>
-          <button type="submit" class="btn btn-primary">Lançar Pedido</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal" id="novoParceiroModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">🏪 Cadastrar Novo Parceiro</h3>
-        <button class="modal-close" onclick="Utils.hideModal('novoParceiroModal')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <form id="novoParceiroForm" onsubmit="criarNovoParceiro(event)">
-          <div class="form-group">
-            <label class="form-label">Nome Fantasia *</label>
-            <input type="text" class="form-control" id="parceiroNome" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Endereço *</label>
-            <input type="text" class="form-control" id="parceiroEndereco" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Telefone *</label>
-            <input type="tel" class="form-control" id="parceiroTelefone" required>
-          </div>
-          <button type="submit" class="btn btn-primary">Cadastrar</button>
+          <button type="submit" class="btn btn-primary" style="width:100%">Lançar no Radar</button>
         </form>
       </div>
     </div>
@@ -154,23 +111,21 @@
 
   <script src="js/utils.js"></script>
   <script type="module" src="js/api.js"></script>
-  
+
   <script>
-    let currentUser = null;
+    let todosPedidos = [];
+    let todosUsuarios = [];
 
     async function initAdmin() {
       if (window.Auth && window.API) {
-        try {
-          // Proteção de nível Admin
-          window.Auth.requireAuth(['admin']);
-          currentUser = window.Auth.getCurrentUser();
-          
-          // Carregamento inicial de dados
-          await carregarEstatisticas();
-          setInterval(carregarEstatisticas, 60000); // Atualiza a cada minuto
-        } catch (error) {
-          console.error("Falha na autenticação:", error);
-        }
+        window.Auth.requireAuth(['admin']);
+        
+        // Escutar TODOS os pedidos do sistema em tempo real
+        window.API.escutarTodosPedidos((data) => {
+          todosPedidos = data;
+          atualizarDashboard();
+          renderizarPedidosAdmin();
+        });
       } else {
         setTimeout(initAdmin, 500);
       }
@@ -178,28 +133,88 @@
 
     document.addEventListener('DOMContentLoaded', initAdmin);
 
-    // Funções de interface
+    function atualizarDashboard() {
+      const hoje = new Date().toLocaleDateString();
+      const pedidosHoje = todosPedidos.filter(p => new Date(p.created_at?.seconds * 1000).toLocaleDateString() === hoje);
+      
+      const faturamento = pedidosHoje.reduce((acc, curr) => acc + (curr.taxaEntrega || 0), 0);
+      const ativos = todosPedidos.filter(p => p.status === 'em_entrega').length;
+
+      document.getElementById('statHoje').textContent = pedidosHoje.length;
+      document.getElementById('statFaturamento').textContent = Utils.formatCurrency(faturamento);
+      document.getElementById('statAtivos').textContent = ativos;
+    }
+
+    function renderizarPedidosAdmin() {
+      const container = document.getElementById('listaPedidosAdmin');
+      container.innerHTML = todosPedidos.map(p => `
+        <div class="card" style="margin-bottom: 10px; border-left: 5px solid ${getStatusColor(p.status)}">
+          <div style="display:flex; justify-content:space-between;">
+            <b>#${p.id.substring(0,6)}</b>
+            <span class="status-badge status-${p.status}">${p.status}</span>
+          </div>
+          <div style="font-size:13px; margin: 5px 0;">
+            <b>Origem:</b> ${p.bairroRetirada} | <b>Destino:</b> ${p.bairro}<br>
+            <b>Entregador:</b> ${p.entregadorNome || '<span style="color:red">Aguardando...</span>'}
+          </div>
+          <div style="text-align:right">
+            <button class="btn btn-small btn-outline" onclick="cancelarPedidoAdmin('${p.id}')">Excluir</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getStatusColor(status) {
+      switch(status) {
+        case 'aguardando_entregador': return '#ffc107';
+        case 'em_entrega': return '#2196f3';
+        case 'finalizado': return '#2ecc71';
+        default: return '#999';
+      }
+    }
+
     function mostrarAba(aba) {
       document.getElementById('abaPedidos').classList.toggle('hidden', aba !== 'pedidos');
-      document.getElementById('abaEntregadores').classList.toggle('hidden', aba !== 'entregadores');
       document.getElementById('abaParceiros').classList.toggle('hidden', aba !== 'parceiros');
-      
-      // Atualiza botões ativos
-      document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('abaUsuarios').classList.toggle('hidden', aba !== 'usuarios');
     }
 
-    async function carregarEstatisticas() {
-      // Aqui entraria a lógica de window.API.getPedidos() para preencher os IDs de stats
-      console.log("Estatísticas atualizadas via Firestore");
-    }
-
-    async function criarNovoPedido(e) {
+    async function lancarPedidoManual(e) {
       e.preventDefault();
-      // Lógica de criação usando window.API.createPedido()
-      Utils.showToast("Pedido criado com sucesso!", "success");
-      Utils.hideModal('novoPedidoModal');
+      const data = {
+        clienteNome: document.getElementById('manualCliente').value,
+        produto: document.getElementById('manualProduto').value,
+        bairroRetirada: document.getElementById('manualBairroRet').value,
+        bairro: document.getElementById('manualBairroEnt').value,
+        taxaEntrega: parseFloat(document.getElementById('manualTaxa').value),
+        status: 'aguardando_entregador',
+        origem: 'ADMIN'
+      };
+
+      try {
+        await window.API.createPedido(data);
+        Utils.showToast("Pedido lançado manualmente!", "success");
+        Utils.hideModal('novoPedidoModal');
+        e.target.reset();
+      } catch (err) {
+        Utils.showToast("Erro ao lançar.", "error");
+      }
+    }
+
+    async function cancelarPedidoAdmin(id) {
+      if(confirm("Tem certeza que deseja remover este pedido?")) {
+        await window.API.deletePedido(id);
+        Utils.showToast("Pedido removido", "success");
+      }
     }
   </script>
+
+  <style>
+    .hidden { display: none; }
+    .stat-card { padding: 15px; border-radius: 12px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+    .stat-value { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+    .stat-label { font-size: 11px; text-transform: uppercase; opacity: 0.7; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  </style>
 </body>
 </html>
-
