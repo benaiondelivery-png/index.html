@@ -1,9 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Suas credenciais do print
 const firebaseConfig = {
-  apiKey: "AIzaSyCl-U9X9uxohJDugz8y2pdkSrS9Rmc",
+  apiKey: "AIzaSyCl-U9X9qxohJDugz8y2pdkSrS9Rmc",
   authDomain: "benaion-delivery.firebaseapp.com",
   projectId: "benaion-delivery",
   storageBucket: "benaion-delivery.appspot.com",
@@ -14,7 +13,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Objeto API
 const API = {
   async createUser(data) {
     const docRef = await addDoc(collection(db, "users"), {
@@ -31,7 +29,6 @@ const API = {
   }
 };
 
-// Objeto Auth integrado para evitar o erro "is not defined"
 const Auth = {
   async loginWithEmail(email, password) {
     const user = await API.getUserByEmail(email);
@@ -46,10 +43,12 @@ const Auth = {
   },
   redirectToDashboard() {
     const user = JSON.parse(localStorage.getItem('benaion_user'));
-    if (user) window.location.href = ${user.userType}.html;
+    if (user) {
+        // CORREÇÃO: Usando crases para o link funcionar
+        window.location.href = `${user.userType}.html`;
+    }
   }
 };
 
-// Torna global para o HTML encontrar
 window.API = API;
 window.Auth = Auth;
