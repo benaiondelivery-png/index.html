@@ -19,25 +19,24 @@ const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 const TABELA_TAXAS = {
-  "Agreste": 5.00,
-  "Nova esperança": 6.00,
-  "Prosperidade": 6.00,
-  "Castanheira": 6.00,
-  "Cajari": 7.00,
-  "Rodovia do gogó": 7.00,
-  "buritizal": 7.00,
-  "Sarney": 8.00,
-  "Nazaré mineiro": 10.00,
-  "centro": 6.00,
-  "mirilandia": 6.00,
-  "Rio branco": 7.00,
-  "José cesário": 6.00,
-  "Malvinas": 8.00,
-  "samaúma": 15.00,
-  "monte dourado": 30.00
+  "Agreste": 5, "Nova esperança": 6, "Prosperidade": 6, "Castanheira": 6,
+  "Cajari": 7, "Rodovia do gogó": 7, "buritizal": 7, "Sarney": 8,
+  "Nazaré mineiro": 10, "centro": 6, "mirilandia": 6, "Rio branco": 7,
+  "José cesário": 6, "Malvinas": 8, "samaúma": 15, "monte dourado": 30
 };
 
-const BASE_AGRESTE = 5.00;
+// Função para calcular a taxa conforme sua regra de logística
+export function calcularTaxa(bairroRetirada, bairroEntrega, adicionais = 0) {
+  const baseAgreste = 5;
+  const taxaRet = TABELA_TAXAS[bairroRetirada] || 7;
+  const taxaEnt = TABELA_TAXAS[bairroEntrega] || 7;
+  
+  const diferenca = taxaEnt - baseAgreste;
+  let total = taxaRet + (diferenca > 0 ? diferenca : 0);
+  
+  return total + adicionais;
+}
+
 
 const API = {
   async createUser(data) {
