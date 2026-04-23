@@ -19,26 +19,34 @@ const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 // --- SISTEMA DE TAXAS DINÂMICAS ---
-let TABELA_TAXAS_DINAMICA = {};
+let TAXAS_LOCAIS = {
+  "Agreste": 6, "Nova esperança": 6, "Prosperidade": 6, "Castanheira": 6,
+  "Cajari": 7, "Rodovia do gogó": 8, "buritizal": 7, "Sarney": 8,
+  "Nazaré mineiro": 10, "centro": 6, "mirilandia": 6, "Rio branco": 7,
+  "José cesário": 6, "Malvinas": 8, "samaúma": 15, "monte dourado": 30
+};
 
-// Escuta as taxas do banco em tempo real (Você muda no Admin, atualiza aqui)
-onSnapshot(doc(db, "configuracoes", "taxas"), (doc) => {
-  if (doc.exists()) {
-    TABELA_TAXAS_DINAMICA = doc.data();
-    console.log("📍 Taxas Benaion Atualizadas:", TABELA_TAXAS_DINAMICA);
-  }
-});
+// Sincroniza taxas com o banco de dados (Para o Admin mudar pelo painel)
+function sincronizarTaxas() {
+  onSnapshot(doc(db, "configuracoes", "taxas"), (doc) => {
+    if (doc.exists()) {
+      TAXAS_LOCAIS = doc.data();
+      console.log("✅ Taxas Benaion atualizadas via nuvem");
+    }
+  });
+}
+sincronizarTaxas();
 
 // --- NÚCLEO API ---
 const API = {
-  // Cálculo flexível usando a tabela do banco
+  // Lógica de cálculo flexível
   calcularTaxa(bairroRetirada, bairroEntrega, adicionais = 0) {
-    const baseMinima = TABELA_TAXAS_DINAMICA["config_minima"] || 5;
-    const taxaRet = TABELA_TAXAS_DINAMICA[bairroRetirada] || baseMinima;
-    const taxaEnt = TABELA_TAXAS_DINAMICA[bairroEntrega] || baseMinima;
+    const taxaRet = TAXAS_LOCAIS[bairroRetirada] || 6;
+    const taxaEnt = TAXAS_LOCAIS[bairroEntrega] || 6;
     
-    const diferenca = taxaEnt - baseMinima;
-    return taxaRet + (diferenca > 0 ? diferenca : 0) + adicionais;
+    // Regra: Cobra a maior taxa entre os dois pontos + adicionais
+    const maiorTaxa = Math.max(taxaRet, taxaEnt);
+    return maiorTaxa + adicionais;
   },
 
   async getUserProfile(uid) {
@@ -47,11 +55,19 @@ const API = {
     return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
   },
 
-  async updateTaxas(novaTabela) {
-    await setDoc(doc(db, "configuracoes", "taxas"), novaTabela, { merge: true });
+  async saveUserToFirestore(uid, userData) {
+    await setDoc(doc(db, "users", uid), {
+      ...userData,
+      updated_at: new Date().toISOString()
+    }, { merge: true });
   },
 
-  // Monitorar pedidos em tempo real (Usado no Admin e Parceiro)
+  // Facilitador para o Admin mudar as taxas
+  async atualizarTabelaTaxas(novaTabela) {
+    await setDoc(doc(db, "configuracoes", "taxas"), novaTabela);
+  },
+
+  // Escuta pedidos em tempo real (Usado no Admin e Parceiro)
   escutarTodosPedidos(callback) {
     const q = query(collection(db, "pedidos"));
     return onSnapshot(q, (snapshot) => {
@@ -63,32 +79,38 @@ const API = {
 
 // --- NÚCLEO DE AUTENTICAÇÃO ---
 const Auth = {
+  async loginWithGoogle() {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      let profile = await API.getUserProfile(user.uid);
+
+      if (!profile) {
+        const pendingType = localStorage.getItem('pending_user_type') || 'cliente';
+        profile = {
+          name: user.displayName,
+          email: user.email,
+          userType: pendingType,
+          photo: user.photoURL,
+          created_at: new Date().toISOString()
+        };
+        await API.saveUserToFirestore(user.uid, profile);
+      }
+
+      localStorage.setItem('benaion_user', JSON.stringify({ id: user.uid, ...profile }));
+      this.redirectToDashboard();
+    } catch (error) { throw error; }
+  },
+
   async loginWithEmail(email, password) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const profile = await API.getUserProfile(userCredential.user.uid);
-      localStorage.setItem('benaion_user', JSON.stringify(profile));
+      localStorage.setItem('benaion_user', JSON.stringify({ id: userCredential.user.uid, ...profile }));
       return profile;
     } catch (error) {
       throw new Error("E-mail ou senha inválidos.");
     }
-  },
-
-  async register(data) {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      const uid = userCredential.user.uid;
-      const profile = {
-        name: data.name,
-        email: data.email,
-        userType: data.userType,
-        storeName: data.storeName || null,
-        created_at: new Date().toISOString()
-      };
-      await setDoc(doc(db, "users", uid), profile);
-      localStorage.setItem('benaion_user', JSON.stringify({ id: uid, ...profile }));
-      return { id: uid, ...profile };
-    } catch (error) { throw error; }
   },
 
   logout() {
@@ -108,16 +130,22 @@ const Auth = {
       return false;
     }
     if (allowedTypes.length > 0 && !allowedTypes.includes(user.userType)) {
-      window.location.href = `${user.userType}.html`;
+      this.redirectToDashboard();
       return false;
     }
     return true;
+  },
+
+  redirectToDashboard() {
+    const user = this.getCurrentUser();
+    if (user) window.location.href = `${user.userType}.html`;
   }
 };
 
-// EXPOSIÇÃO GLOBAL IMEDIATA
+// EXPOSIÇÃO GLOBAL (Crucial para funcionar em todos os arquivos)
 window.API = API;
 window.Auth = Auth;
 window.db = db;
 
-export { db, auth, API, Auth };
+console.log("🚀 Benaion API v1.8 - Pronta para Laranjal do Jari");
+
