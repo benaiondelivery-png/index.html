@@ -1,11 +1,9 @@
 // ========================================
-// BENAION DELIVERY - UTILITÁRIOS (V1.8.0)
+// BENAION DELIVERY - UTILITÁRIOS (V2.0)
 // ========================================
 
 const Utils = {
-  // ========================================
-  // TOAST NOTIFICATIONS (Alertas rápidos)
-  // ========================================
+  // 1. NOTIFICAÇÕES (Toasts elegantes que combinam com seu design)
   showToast(message, type = 'info', duration = 3000) {
     let container = document.querySelector('.toast-container');
     if (!container) {
@@ -15,7 +13,7 @@ const Utils = {
     }
 
     const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
+    toast.className = `toast ${type} animate__animated animate__fadeInRight`;
     
     const icons = {
       success: 'fa-check-circle',
@@ -25,31 +23,29 @@ const Utils = {
     };
     
     toast.innerHTML = `
-      <i class="fas ${icons[type] || icons.info}" style="font-size: 18px;"></i>
+      <i class="fas ${icons[type] || icons.info}"></i>
       <span>${message}</span>
     `;
 
     container.appendChild(toast);
 
     setTimeout(() => {
-      toast.style.animation = 'toastSlideIn 0.3s ease-out reverse';
+      toast.classList.replace('animate__fadeInRight', 'animate__fadeOutRight');
       setTimeout(() => {
         if (toast.parentNode) {
             toast.remove();
             if (container.children.length === 0) container.remove();
         }
-      }, 300);
+      }, 500);
     }, duration);
   },
 
-  // ========================================
-  // MODAIS (Abertura e Fechamento)
-  // ========================================
+  // 2. MODAIS (Abertura suave)
   showModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-      modal.classList.remove('hidden'); 
-      modal.style.display = 'flex'; 
+      modal.style.display = 'flex';
+      modal.classList.remove('hidden');
       setTimeout(() => modal.classList.add('active'), 10);
       document.body.style.overflow = 'hidden';
     }
@@ -67,23 +63,15 @@ const Utils = {
     }
   },
 
-  // ========================================
-  // GOOGLE MAPS (CORRIGIDO)
-  // ========================================
+  // 3. GOOGLE MAPS (Links corrigidos para GPS de Moto)
   openGoogleMaps(origin, destination) {
-    // URL Corrigida para navegação GPS
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=motorcycle`;
+    const cleanOrigin = encodeURIComponent(origin + ", Laranjal do Jari, AP");
+    const cleanDest = encodeURIComponent(destination + ", Laranjal do Jari, AP");
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${cleanOrigin}&destination=${cleanDest}&travelmode=motorcycle`;
     window.open(url, '_blank');
   },
 
-  getAddressLink(address) {
-    // URL Corrigida para busca de endereço
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-  },
-
-  // ========================================
-  // LÓGICA BENAION (Tempo e Dinheiro)
-  // ========================================
+  // 4. LÓGICA DE NEGÓCIO (Taxas e Bônus)
   formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -93,24 +81,25 @@ const Utils = {
 
   calcularAdicionalTempo(dataInicio) {
     if (!dataInicio) return 0;
-    const inicio = new Date(dataInicio);
+    // Converte segundos do Firebase para milissegundos se necessário
+    const inicio = dataInicio.seconds ? new Date(dataInicio.seconds * 1000) : new Date(dataInicio);
     const agora = new Date();
     const diffMinutos = Math.floor((agora - inicio) / 60000);
 
+    // Regra Benaion: Após 3 minutos, R$ 0,30 por minuto extra
     if (diffMinutos > 3) {
       return (diffMinutos - 3) * 0.30;
     }
     return 0;
   },
 
-  // ========================================
-  // STATUS E COMUNICAÇÃO
-  // ========================================
+  // 5. STATUS E COMUNICAÇÃO
   getStatusText(status) {
     const statusMap = {
       'pendente': 'Aguardando Loja',
       'preparando': 'Loja Separando Itens',
       'pronto': 'Pronto para Coleta',
+      'aguardando_entregador': 'Buscando Entregador',
       'aceito': 'Entregador a caminho',
       'em_entrega': 'Em Rota de Entrega',
       'finalizado': 'Entregue ✅',
@@ -121,8 +110,9 @@ const Utils = {
 
   openWhatsApp(tel, mensagem) {
     if (!tel) return;
-    const link = `https://wa.me/55${tel.replace(/\D/g, '')}?text=${encodeURIComponent(mensagem)}`;
-    window.open(link, '_blank');
+    const cleanTel = tel.replace(/\D/g, '');
+    const url = `https://wa.me/55${cleanTel}?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, '_blank');
   },
 
   vibrate(pattern = [200]) {
@@ -130,5 +120,6 @@ const Utils = {
   }
 };
 
+// Exportação Global
 window.Utils = Utils;
 
