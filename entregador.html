@@ -9,40 +9,57 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-  <link rel="manifest" href="manifest.json">
 
   <style>
     :root {
       --status-online: #2ecc71;
-      --status-offline: #ccc;
+      --status-offline: #95a5a6;
     }
-    body { background-color: #f8f9fa; }
+    body { background-color: #f4f7f6; font-family: 'Segoe UI', Roboto, sans-serif; }
     .hidden { display: none !important; }
-    .status-dot { font-size: 10px; margin-right: 5px; }
-    .online { color: var(--status-online); }
-    .offline { color: var(--status-offline); }
     
+    .status-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
     .pedido-card {
       background: white;
-      border-radius: 15px;
-      padding: 18px;
-      margin-bottom: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      border-left: 6px solid var(--primary-red);
-      transition: transform 0.2s;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border-left: 6px solid #E30613;
     }
-    .pedido-card:active { transform: scale(0.98); }
+
+    .stat-box {
+      background: rgba(255,255,255,0.15);
+      padding: 10px;
+      border-radius: 12px;
+      backdrop-filter: blur(5px);
+    }
+
+    .btn-action {
+      border-radius: 10px;
+      padding: 12px;
+      font-weight: 800;
+      border: none;
+      transition: 0.2s;
+    }
 
     .btn-aceitar {
-      background: var(--primary-red);
+      background: #E30613;
       color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 10px;
-      font-weight: 800;
       width: 100%;
       margin-top: 10px;
     }
+
+    .btn-aceitar:active { background: #b3050f; transform: scale(0.98); }
   </style>
 </head>
 <body>
@@ -55,74 +72,61 @@
             <img src="https://i.postimg.cc/T2Vt53JP/Vermelho-delivery-logo-20260227-011329-0005.png" alt="Benaion">
           </div>
           <div class="logo-text">
-            <h1 id="entregadorNome">Carregando...</h1>
-            <p id="txtStatus"><i class="fas fa-circle status-dot offline"></i> Conectando...</p>
+            <h1 id="entregadorNome" style="font-size: 18px;">Conectando...</h1>
+            <div id="statusIndicator" class="status-badge" style="background: #eee; color: #666;">
+                <i class="fas fa-circle" style="font-size: 8px;"></i> Verificando
+            </div>
           </div>
         </div>
         <div class="header-actions">
-          <button class="header-btn" id="btnStatusHeader" onclick="toggleStatus()">
-            <i class="fas fa-power-off"></i>
-          </button>
-          <button class="header-btn" onclick="window.Auth.logout()">
-            <i class="fas fa-sign-out-alt"></i>
-          </button>
+          <button class="header-btn" id="btnStatusHeader" onclick="toggleStatus()"><i class="fas fa-power-off"></i></button>
+          <button class="header-btn" onclick="window.Auth.logout()"><i class="fas fa-sign-out-alt"></i></button>
         </div>
       </div>
     </header>
 
-    <main class="page" id="mainContent">
-      <div class="card animate__animated animate__fadeIn" style="background: linear-gradient(135deg, var(--primary-red) 0%, #a0040d 100%); color: white; margin-bottom: 20px; border: none; border-radius: 15px;">
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
-          <div>
-            <div style="font-size: 20px; font-weight: 800;" id="statHoje">0</div>
-            <div style="font-size: 10px; text-transform: uppercase; opacity: 0.8;">Entregas</div>
+    <main class="page">
+      <div class="card animate__animated animate__fadeIn" style="background: linear-gradient(135deg, #E30613 0%, #90030a 100%); color: white; margin-bottom: 20px; border: none; border-radius: 20px; padding: 20px;">
+        <p style="font-size: 12px; opacity: 0.8; margin-bottom: 15px; font-weight: 600;">RESUMO DE HOJE</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div class="stat-box">
+            <span style="font-size: 11px; display: block; opacity: 0.9;">Ganhos Totais</span>
+            <b style="font-size: 22px;" id="statSaldo">R$ 0,00</b>
           </div>
-          <div style="border-left: 1px solid rgba(255,255,255,0.2); border-right: 1px solid rgba(255,255,255,0.2);">
-            <div style="font-size: 20px; font-weight: 800;" id="statSaldo">R$ 0</div>
-            <div style="font-size: 10px; text-transform: uppercase; opacity: 0.8;">Ganhos</div>
-          </div>
-          <div>
-            <div style="font-size: 20px; font-weight: 800;" id="statBonus">R$ 0</div>
-            <div style="font-size: 10px; text-transform: uppercase; opacity: 0.8;">Espera</div>
+          <div class="stat-box">
+            <span style="font-size: 11px; display: block; opacity: 0.9;">Entregas</span>
+            <b style="font-size: 22px;" id="statHoje">0</b>
           </div>
         </div>
       </div>
 
       <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-        <button id="btnTabDisp" class="btn btn-primary" style="flex: 1; font-weight: 700;" onclick="mostrarAba('disponiveis')">
+        <button id="btnTabDisp" class="btn btn-primary" style="flex: 1; border-radius: 12px;" onclick="mostrarAba('disponiveis')">
            <i class="fas fa-satellite-dish"></i> RADAR
         </button>
-        <button id="btnTabMinhas" class="btn btn-outline" style="flex: 1; font-weight: 700;" onclick="mostrarAba('minhas')">
-           <i class="fas fa-route"></i> MINHAS
+        <button id="btnTabMinhas" class="btn btn-outline" style="flex: 1; border-radius: 12px;" onclick="mostrarAba('minhas')">
+           <i class="fas fa-route"></i> EM CURSO
         </button>
       </div>
 
       <div id="abaDisponiveis">
-        <h3 style="margin-bottom: 15px; font-size: 16px; color: #333;">Pedidos no Radar</h3>
         <div id="listaPedidosDisponiveis">
-            <div class="text-center" style="padding: 40px; color: #999;">
-                <i class="fas fa-search animate__animated animate__pulse animate__infinite fa-2x"></i>
-                <p style="margin-top: 10px;">Procurando entregas...</p>
+            <div class="text-center" style="padding: 50px; opacity: 0.4;">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                <p style="margin-top: 10px;">Sincronizando satélite...</p>
             </div>
         </div>
       </div>
       
       <div id="abaMinhas" class="hidden">
-        <h3 style="margin-bottom: 15px; font-size: 16px; color: #333;">Entregas em Curso</h3>
         <div id="listaMinhasEntregas"></div>
       </div>
     </main>
 
     <nav class="bottom-nav">
-      <button class="nav-item active" onclick="mostrarAba('disponiveis')">
-        <i class="fas fa-motorcycle"></i><span>Radar</span>
-      </button>
-      <button class="nav-item" onclick="window.Utils.showToast('Tabela de Preços em breve', 'info')">
-        <i class="fas fa-list-alt"></i><span>Preços</span>
-      </button>
-      <button class="nav-item" onclick="toggleStatus()">
-        <i class="fas fa-circle" id="navIconStatus"></i><span id="navTextStatus">Offline</span>
-      </button>
+      <button class="nav-item active" onclick="mostrarAba('disponiveis')"><i class="fas fa-motorcycle"></i><span>Radar</span></button>
+      <button class="nav-item" onclick="window.Utils.showToast('Tabela em breve', 'info')"><i class="fas fa-list-ul"></i><span>Preços</span></button>
+      <button class="nav-item" onclick="toggleStatus()"><i class="fas fa-power-off" id="navIconStatus"></i><span id="navTextStatus">Offline</span></button>
     </nav>
   </div>
 
@@ -144,12 +148,12 @@
       
       document.getElementById('entregadorNome').textContent = "Olá, " + currentUser.name.split(' ')[0];
       
-      // Sincroniza o status Online do Firestore
+      // Carrega status inicial
       const perfil = await window.API.getUserProfile(currentUser.id);
       currentUser.online = perfil?.online || false;
       sincronizarUIStatus(currentUser.online);
 
-      // Inicia o Radar Benaion
+      // Radar em Tempo Real
       window.API.escutarTodosPedidos((pedidos) => {
           pedidosEscutados = pedidos;
           renderizarListas();
@@ -158,21 +162,22 @@
     }
 
     function sincronizarUIStatus(isOnline) {
-      const txt = document.getElementById('txtStatus');
-      const iconNav = document.getElementById('navIconStatus');
+      const indicator = document.getElementById('statusIndicator');
       const textNav = document.getElementById('navTextStatus');
-      const btnHeader = document.getElementById('btnStatusHeader');
+      const iconNav = document.getElementById('navIconStatus');
 
       if (isOnline) {
-        txt.innerHTML = '<i class="fas fa-circle status-dot online"></i> No Radar';
-        iconNav.style.color = "#2ecc71";
+        indicator.style.background = "#d4f8e2";
+        indicator.style.color = "#2ecc71";
+        indicator.innerHTML = '<i class="fas fa-circle" style="font-size: 8px;"></i> NO RADAR';
         textNav.textContent = "Online";
-        btnHeader.style.color = "#2ecc71";
+        iconNav.style.color = "#2ecc71";
       } else {
-        txt.innerHTML = '<i class="fas fa-circle status-dot offline"></i> Offline';
-        iconNav.style.color = "#ccc";
+        indicator.style.background = "#eee";
+        indicator.style.color = "#95a5a6";
+        indicator.innerHTML = '<i class="fas fa-circle" style="font-size: 8px;"></i> OFFLINE';
         textNav.textContent = "Offline";
-        btnHeader.style.color = "#ccc";
+        iconNav.style.color = "#95a5a6";
       }
     }
 
@@ -182,10 +187,9 @@
         await window.API.updateUser(currentUser.id, { online: novoStatus });
         currentUser.online = novoStatus;
         sincronizarUIStatus(novoStatus);
-        window.Utils.showToast(novoStatus ? "Radar Ativado!" : "Você saiu do Radar", "info");
-        renderizarListas();
+        window.Utils.showToast(novoStatus ? "Você está visível para novas entregas!" : "Você saiu do radar", "info");
       } catch (e) {
-        window.Utils.showToast("Erro ao mudar status", "error");
+        window.Utils.showToast("Erro ao atualizar status", "error");
       }
     }
 
@@ -193,51 +197,50 @@
       const dispContainer = document.getElementById('listaPedidosDisponiveis');
       const minhasContainer = document.getElementById('listaMinhasEntregas');
 
-      const disponiveis = pedidosEscutados.filter(p => (p.status === 'aguardando_entregador' || p.status === 'pronto') && currentUser.online);
+      const disponiveis = pedidosEscutados.filter(p => p.status === 'aguardando_entregador' && currentUser.online);
       const minhas = pedidosEscutados.filter(p => p.entregadorId === currentUser.id && p.status !== 'finalizado');
 
-      // Render Radar
-      if (disponiveis.length === 0) {
-        dispContainer.innerHTML = `<p class="text-center py-4" style="color:#999;">${currentUser.online ? 'Nenhum pedido no momento.' : 'Fique ONLINE para ver pedidos.'}</p>`;
-      } else {
-        dispContainer.innerHTML = disponiveis.map(p => `
-          <div class="pedido-card animate__animated animate__bounceIn">
+      // Lista Radar
+      dispContainer.innerHTML = disponiveis.length === 0 
+        ? `<div style="text-align:center; padding:40px; color:#999;">
+            <i class="fas fa-box-open fa-2x" style="margin-bottom:10px;"></i>
+            <p>${currentUser.online ? 'Buscando pedidos em Jari...' : 'Fique Online para ver o Radar'}</p>
+           </div>`
+        : disponiveis.map(p => `
+          <div class="pedido-card animate__animated animate__fadeInUp">
             <div style="display:flex; justify-content:space-between; align-items:start;">
-              <div>
-                <span style="font-size:10px; background:#eee; padding:2px 6px; border-radius:5px;">${p.origem || 'AVULSO'}</span>
-                <p style="margin-top:5px;"><b>De:</b> ${p.bairroRetirada}</p>
-                <p><b>Para:</b> ${p.bairro}</p>
+              <div style="font-size: 13px;">
+                <b style="color:#E30613;">RETIRADA:</b> ${p.bairroRetirada.toUpperCase()}<br>
+                <b style="color:#333;">ENTREGA:</b> ${p.bairro.toUpperCase()}
+                <p style="margin-top:8px; color:#666;"><i class="fas fa-shopping-bag"></i> ${p.produto}</p>
               </div>
               <div style="text-align:right;">
-                <span style="color:var(--primary-red); font-size:20px; font-weight:800;">${window.Utils.formatCurrency(p.taxaEntrega)}</span>
+                <b style="color:#2ecc71; font-size:20px;">${window.Utils.formatCurrency(p.taxaEntrega)}</b>
               </div>
             </div>
-            <button class="btn-aceitar" onclick="aceitarCorrida('${p.id}')">ACEITAR CORRIDA</button>
+            <button class="btn-action btn-aceitar" onclick="aceitarCorrida('${p.id}')">PEGAR ENTREGA</button>
           </div>
         `).join('');
-      }
 
-      // Render Minhas
-      if (minhas.length === 0) {
-        minhasContainer.innerHTML = '<p class="text-center py-4" style="color:#999;">Nenhuma entrega em curso.</p>';
-      } else {
-        minhasContainer.innerHTML = minhas.map(p => `
-          <div class="card" style="border-left: 6px solid #3498db; margin-bottom:10px;">
-            <div style="display:flex; justify-content:space-between;">
-              <b>Pedido #${p.id.substring(0,6).toUpperCase()}</b>
-              <span class="badge" style="background:#3498db; color:white; font-size:10px;">${window.Utils.getStatusText(p.status)}</span>
+      // Minhas Entregas
+      minhasContainer.innerHTML = minhas.length === 0
+        ? '<p style="text-align:center; padding:30px; color:#999;">Nenhuma entrega ativa no momento.</p>'
+        : minhas.map(p => `
+          <div class="card" style="border-left: 6px solid #3498db; margin-bottom:12px; border-radius:15px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+              <b style="font-size:12px;">PEDIDO #${p.id.substring(0,6).toUpperCase()}</b>
+              <span class="badge" style="background:#3498db; color:white; font-size:10px;">${window.Utils.getStatusText(p.status).toUpperCase()}</span>
             </div>
-            <div style="margin:10px 0; font-size:13px;">
-              <p><i class="fas fa-map-marker-alt"></i> Destino: ${p.bairro}</p>
-              <p><i class="fas fa-box"></i> Itens: ${p.produto || p.descricao}</p>
+            <div style="font-size:13px; margin-bottom:15px;">
+              <p>📍 <b>De:</b> ${p.retiradaLocal}</p>
+              <p>🏁 <b>Para:</b> ${p.entregaLocal || p.bairro}</p>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-              <button class="btn btn-small btn-outline" onclick="window.Utils.openGoogleMaps('${p.bairroRetirada}', '${p.bairro}')">ROTA</button>
-              <button class="btn btn-small btn-success" style="background:#2ecc71; color:white; border:none;" onclick="finalizarEntrega('${p.id}')">CONCLUIR</button>
+            <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:10px;">
+              <button class="btn-action" style="background:#f1f1f1; color:#333;" onclick="window.Utils.openGoogleMaps('${p.bairroRetirada}', '${p.bairro}')">VER ROTA</button>
+              <button class="btn-action" style="background:#2ecc71; color:white;" onclick="finalizarEntrega('${p.id}')">CONCLUÍDO</button>
             </div>
           </div>
         `).join('');
-      }
     }
 
     async function aceitarCorrida(id) {
@@ -246,23 +249,23 @@
           entregadorId: currentUser.id,
           entregadorNome: currentUser.name,
           status: 'aceito',
-          aceito_em: Date.now()
+          aceito_em: new Date().toISOString()
         });
-        window.Utils.vibrate([100, 50, 100]);
-        window.Utils.showToast("Corrida aceita! Boa sorte.", "success");
+        window.Utils.showToast("Pedido aceito! Vá com cuidado.", "success");
+        if(navigator.vibrate) navigator.vibrate(100);
         mostrarAba('minhas');
       } catch (e) {
-        window.Utils.showToast("Outro entregador aceitou primeiro.", "error");
+        window.Utils.showToast("Falha ao aceitar. Tente outro.", "error");
       }
     }
 
     async function finalizarEntrega(id) {
-      if (confirm("Confirma que entregou o pedido?")) {
+      if (confirm("Confirmar entrega e recebimento da taxa?")) {
         await window.API.updatePedido(id, { 
           status: 'finalizado',
-          finalizado_em: Date.now()
+          finalizado_em: new Date().toISOString()
         });
-        window.Utils.showToast("Parabéns! Mais um pra conta.", "success");
+        window.Utils.showToast("Excelente! Entrega finalizada.", "success");
       }
     }
 
@@ -274,7 +277,7 @@
         new Date(p.finalizado_em || Date.now()).toLocaleDateString() === hoje
       );
 
-      const ganhos = concluidosHoje.reduce((acc, p) => acc + (p.taxaEntrega || 0), 0);
+      const ganhos = concluidosHoje.reduce((acc, p) => acc + (parseFloat(p.taxaEntrega) || 0), 0);
       
       document.getElementById('statHoje').textContent = concluidosHoje.length;
       document.getElementById('statSaldo').textContent = window.Utils.formatCurrency(ganhos);
@@ -291,4 +294,3 @@
   </script>
 </body>
 </html>
-
