@@ -1,42 +1,35 @@
 // ========================================
-// BENAION DELIVERY - JS DO PARCEIRO (V2.0)
+// BENAION DELIVERY - JS DO PARCEIRO (V2.1)
 // ========================================
 import { db } from './api.js';
-import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 let userLoja = null;
 let todosPedidos = [];
 
-// 1. INICIALIZAÇÃO
 async function init() {
-    if (!window.Auth || !window.API) {
+    if (!window.Auth || !window.API || !window.Utils) {
         setTimeout(init, 300);
         return;
     }
 
     userLoja = window.Auth.getCurrentUser();
     
-    // Verificação de Segurança
     if (!userLoja || userLoja.userType !== 'parceiro') {
         window.location.href = 'index.html';
         return;
     }
 
-    // Atualiza Nome na Interface
     const displayNome = document.getElementById('lojaNome');
     if (displayNome) displayNome.textContent = userLoja.storeName || userLoja.name;
 
-    // Iniciar Escutas do Firebase
     escutarPedidos();
     carregarProdutos();
 }
 
-// 2. ESCUTA DE PEDIDOS EM TEMPO REAL
+// 1. MONITORAMENTO DE PEDIDOS E ADICIONAIS
 function escutarPedidos() {
-    const q = query(
-        collection(db, "pedidos"), 
-        where("lojaId", "==", userLoja.id)
-    );
+    const q = query(collection(db, "pedidos"), where("lojaId", "==", userLoja.id));
 
     onSnapshot(q, (snapshot) => {
         todosPedidos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -46,124 +39,114 @@ function escutarPedidos() {
 
 function renderizarPainel() {
     const container = document.getElementById('listaPedidos');
-    const ativos = todosPedidos.filter(p => ['pendente', 'preparando', 'pronto'].includes(p.status));
+    const ativos = todosPedidos.filter(p => ['pendente', 'preparando', 'pronto', 'aceito', 'em_entrega'].includes(p.status));
     
-    // Atualizar Contadores do Topo
-    document.getElementById('pedidosAtivos').textContent = ativos.length;
-    
-    const hoje = new Date().toLocaleDateString();
-    const concluidosHoje = todosPedidos.filter(p => 
-        p.status === 'finalizado' && new Date(p.created_at).toLocaleDateString() === hoje
-    );
-    
-    const faturamento = concluidosHoje.reduce((acc, p) => acc + (p.valorProdutos || 0), 0);
-    document.getElementById('vendasHoje').textContent = concluidosHoje.length;
-    document.getElementById('faturamentoHoje').textContent = window.Utils.formatCurrency(faturamento);
+    // Stats do Topo
+    if(document.getElementById('pedidosAtivos')) document.getElementById('pedidosAtivos').textContent = ativos.length;
 
     if (ativos.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding:40px; color:#999;">Nenhum pedido ativo no momento.</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:40px; color:#999;">Nenhum pedido ativo.</div>`;
         return;
     }
 
-    container.innerHTML = ativos.map(p => `
-        <div class="card pedido-card ${p.status}">
-            <div style="display:flex; justify-content:space-between; align-items:start;">
-                <div>
-                    <span style="font-size:12px; color:#666;">#${p.id.substring(0,6)}</span>
-                    <h4 style="margin:5px 0;">${p.clienteNome || 'Cliente App'}</h4>
-                </div>
-                <span class="badge-status status-${p.status === 'pendente' ? 'closed' : 'open'}">
-                    ${window.Utils.getStatusText(p.status).toUpperCase()}
-                </span>
+    container.innerHTML = ativos.map(p => {
+        // Lógica do Adicional de Tempo (30 centavos)
+        const adicionalTempo = window.Utils.calcularAdicionalTempo(p.hora_chegada_mercado);
+        
+        return `
+        <div class="card pedido-card ${p.status}" style="margin-bottom:15px; border-left: 5px solid var(--primary-red);">
+            <div style="display:flex; justify-content:space-between;">
+                <b>#${p.id.substring(0,6).toUpperCase()}</b>
+                <span class="badge-status">${window.Utils.getStatusText(p.status)}</span>
             </div>
             
-            <div style="margin:10px 0; font-size:14px; border-top:1px solid #eee; padding-top:10px;">
-                ${p.itens ? p.itens.map(i => `<p>• ${i.qtd}x ${i.nome}</p>`).join('') : '<i>Pedido Personalizado</i>'}
+            <div style="margin:10px 0;">
+                <strong>${p.clienteNome}</strong><br>
+                <small>${p.bairro || 'Endereço não informado'}</small>
             </div>
 
-            <div class="valor-retirada-destaque">
-                <small>Valor das Mercadorias:</small><br>
-                <strong style="font-size:18px; color:var(--primary-red);">${window.Utils.formatCurrency(p.valorProdutos)}</strong>
+            <div style="background: #fdfdfd; padding: 8px; border-radius: 5px; margin-bottom: 10px;">
+                ${p.itens ? p.itens.map(i => `<div style="font-size:13px;">${i.qtd}x ${i.nome}</div>`).join('') : '<i>Pedido via Telefone/Manual</i>'}
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+            ${p.hora_chegada_mercado ? `
+                <div style="color: ${adicionalTempo > 0 ? 'var(--primary-red)' : '#2ecc71'}; font-weight: bold; font-size: 12px; margin-bottom: 10px;">
+                    <i class="fas fa-stopwatch"></i> Adicional de Espera: ${window.Utils.formatCurrency(adicionalTempo)}
+                </div>
+            ` : ''}
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 ${p.status === 'pendente' ? 
                     `<button class="btn btn-primary" onclick="alterarStatus('${p.id}', 'preparando')">ACEITAR</button>` :
                     p.status === 'preparando' ?
                     `<button class="btn btn-primary" onclick="alterarStatus('${p.id}', 'pronto')" style="background:#3498db;">PRONTO</button>` :
-                    `<button class="btn btn-small" disabled style="background:#eee; color:#999;">AGUARDANDO COLETA</button>`
+                    `<button class="btn btn-small" disabled style="background:#eee; color:#999;">${window.Utils.getStatusText(p.status)}</button>`
                 }
-                <button class="btn btn-small" onclick="window.Utils.openWhatsApp('${p.clienteTel || ''}', 'Olá, sou da loja ${userLoja.storeName}. Sobre seu pedido...')">
-                    <i class="fab fa-whatsapp"></i> CONTATO
+                <button class="btn btn-outline btn-small" onclick="window.Utils.openWhatsApp('${p.clienteTel || ''}', 'Olá, sou da ${userLoja.storeName}. Sobre seu pedido...')">
+                    CONTATO
                 </button>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
-// 3. GESTÃO DE PRODUTOS (CATÁLOGO)
-async function carregarProdutos() {
-    const q = query(collection(db, "produtos"), where("lojaId", "==", userLoja.id));
-    const snap = await getDocs(q);
-    const grid = document.getElementById('gridProdutos');
-    
-    grid.innerHTML = snap.docs.map(d => {
-        const p = d.data();
-        return `
-            <div class="product-card">
-                <h4>${p.nome}</h4>
-                <p>${window.Utils.formatCurrency(p.preco)}</p>
-                <small>${p.descricao || ''}</small>
-            </div>
-        `;
-    }).join('');
-}
-
-document.getElementById('formAddProduto').onsubmit = async (e) => {
+// 2. CHAMAR ENTREGADOR (MANUAL) - INTEGRADO COM TAXAS DO ADMIN
+window.lancarPedidoManualLoja = async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector('button');
     btn.disabled = true;
 
-    const data = {
+    const bairroEntrega = document.getElementById('manualBairroEnt').value;
+    // Puxa o bairro da própria loja para calcular a taxa correta
+    const bairroLoja = userLoja.bairro || "Centro"; 
+    
+    // Usa a lógica de taxas que você mudou no Admin
+    const taxaEntrega = window.API.calcularTaxa(bairroLoja, bairroEntrega);
+
+    const novoPedido = {
         lojaId: userLoja.id,
-        nome: document.getElementById('pNome').value,
-        preco: parseFloat(document.getElementById('pPreco').value),
-        descricao: document.getElementById('pDesc').value,
-        disponivel: true,
-        created_at: Date.now()
+        lojaNome: userLoja.storeName || userLoja.name,
+        bairroRetirada: bairroLoja,
+        clienteNome: document.getElementById('manualCliente').value,
+        bairro: bairroEntrega,
+        taxaEntrega: taxaEntrega,
+        valorProdutos: parseFloat(document.getElementById('manualValor').value || 0),
+        status: 'aguardando_entregador',
+        created_at: Date.now(),
+        origem: 'LOJA_PARCEIRA'
     };
 
     try {
-        await addDoc(collection(db, "produtos"), data);
-        window.Utils.showToast("Produto adicionado ao catálogo!", "success");
-        window.Utils.hideModal('modalProduto');
+        await addDoc(collection(db, "pedidos"), novoPedido);
+        window.Utils.showToast("Entregador solicitado!", "success");
+        window.Utils.hideModal('modalPedidoManual');
         e.target.reset();
-        carregarProdutos();
     } catch (err) {
-        window.Utils.showToast("Erro ao salvar produto", "error");
-    } finally { btn.disabled = false; }
+        window.Utils.showToast("Erro ao chamar entregador", "error");
+    } finally {
+        btn.disabled = false;
+    }
 };
 
-// 4. FUNÇÕES GLOBAIS (STATUS E ABAS)
+// 3. GESTÃO DE PRODUTOS E STATUS
 window.alterarStatus = async (id, status) => {
     const ref = doc(db, "pedidos", id);
     await updateDoc(ref, { status: status });
-    window.Utils.vibrate();
-    window.Utils.showToast(`Pedido marcado como ${status}`);
+    window.Utils.showToast(`Status: ${window.Utils.getStatusText(status)}`);
 };
 
-window.switchTab = (tab) => {
-    document.querySelectorAll('.tab-section').forEach(s => s.classList.add('hidden'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    
-    document.getElementById(`aba-${tab}`).classList.remove('hidden');
-    document.getElementById(`nav-${tab}`).classList.add('active');
-};
-
-// 5. CHAMAR ENTREGADOR (PEDIDO MANUAL)
-window.abrirModalChamarEntregador = () => {
-    // Aqui você pode usar o modal de pedido manual que já tem
-    window.Utils.showModal('modalPedidoManual'); // Certifique-se de ter esse modal
-};
+async function carregarProdutos() {
+    const grid = document.getElementById('gridProdutos');
+    if(!grid) return;
+    const q = query(collection(db, "produtos"), where("lojaId", "==", userLoja.id));
+    const snap = await getDocs(q);
+    grid.innerHTML = snap.docs.map(d => `
+        <div class="product-card">
+            <strong>${d.data().nome}</strong><br>
+            <small>${window.Utils.formatCurrency(d.data().preco)}</small>
+        </div>
+    `).join('');
+}
 
 document.addEventListener('DOMContentLoaded', init);
+
