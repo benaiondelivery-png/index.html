@@ -34,7 +34,7 @@
       background: white; border: 1px solid #ddd; color: #555;
       font-weight: 600; display: flex; align-items: center;
       justify-content: center; gap: 12px; padding: 12px; border-radius: 12px;
-      cursor: pointer; transition: 0.2s;
+      cursor: pointer; transition: 0.2s; width: 100%;
     }
     .btn-google:hover { background: #f1f1f1; }
     .input-animated {
@@ -51,6 +51,9 @@
     .divider { text-align: center; margin: 20px 0; color: #aaa; font-size: 12px; position: relative; }
     .divider::before, .divider::after { content: ""; position: absolute; top: 50%; width: 30%; height: 1px; background: #eee; }
     .divider::before { left: 0; } .divider::after { right: 0; }
+    
+    .link-aux { color: #777; font-size: 12px; text-decoration: none; transition: 0.2s; }
+    .link-aux:hover { color: var(--primary-red); }
   </style>
 </head>
 <body>
@@ -60,7 +63,7 @@
         <img src="https://i.postimg.cc/T2Vt53JP/Vermelho-delivery-logo-20260227-011329-0005.png" style="width: 80px; border-radius: 50%;">
     </div>
     <p style="margin-top: 15px; font-weight: 600;">Conectando à Benaion...</p>
-    <button onclick="document.getElementById('loadingOverlay').style.display='none'" style="margin-top:20px; background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:5px; font-size:10px;">Cancelar</button>
+    <button onclick="document.getElementById('loadingOverlay').style.display='none'" style="margin-top:20px; background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:5px; font-size:10px; cursor:pointer;">Cancelar</button>
   </div>
 
   <div class="login-container animate__animated animate__fadeInUp">
@@ -72,7 +75,7 @@
       <h2 style="text-align: center; font-weight: 800; margin-bottom: 8px;">Bem-vindo</h2>
       <p style="text-align: center; color: #777; font-size: 14px; margin-bottom: 24px;">Entre para continuar</p>
 
-      <button onclick="handleGoogleLogin()" class="btn-google w-100 mb-3" style="width: 100%;">
+      <button onclick="handleGoogleLogin()" class="btn-google mb-3">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
         Continuar com Google
       </button>
@@ -82,6 +85,11 @@
       <form onsubmit="handleEmailLogin(event)">
         <input type="email" class="input-animated" id="email" placeholder="Seu email" required>
         <input type="password" class="input-animated" id="password" placeholder="Sua senha" required>
+        
+        <div style="text-align: right; margin-top: -10px; margin-bottom: 15px;">
+          <a href="#" onclick="handleForgotPassword()" class="link-aux">Esqueceu a senha?</a>
+        </div>
+
         <button type="submit" class="btn btn-primary w-100" style="width: 100%; padding: 14px; font-weight: 700; background: var(--primary-red); color: white; border: none; border-radius: 12px; cursor: pointer;">
           ENTRAR
         </button>
@@ -95,16 +103,17 @@
 
     <div style="text-align: center; margin-top: 30px; color: white;">
       <p style="font-size: 12px; font-weight: 600;">LARANJAL DO JARI • MONTE DOURADO</p>
-      <p style="font-size: 11px; opacity: 0.6;">BENAION DELIVERY 2026 • v1.5.0</p>
+      <p style="font-size: 11px; opacity: 0.6;">BENAION DELIVERY 2026 • v2.0.0</p>
     </div>
   </div>
 
   <div class="modal" id="registerModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
     <div class="login-card animate__animated animate__zoomIn" style="width: 90%; max-width: 400px; position: relative;">
-      <button onclick="handleCloseRegister()" style="position: absolute; right: 15px; top: 15px; border: none; background: none; font-size: 20px;">&times;</button>
+      <button onclick="handleCloseRegister()" style="position: absolute; right: 15px; top: 15px; border: none; background: none; font-size: 20px; cursor: pointer;">&times;</button>
       <h3 style="margin-bottom: 20px; text-align: center;">Começar na Benaion</h3>
       
       <form onsubmit="handleRegister(event)">
+        <label style="font-size: 12px; color: #777; margin-left: 5px;">Eu quero ser:</label>
         <select class="input-animated" id="registerUserType" required onchange="toggleParceiroFields()">
           <option value="cliente">😋 Cliente (Pedir)</option>
           <option value="entregador">🛵 Entregador (Trabalhar)</option>
@@ -118,9 +127,9 @@
         </div>
 
         <input type="email" class="input-animated" id="registerEmail" placeholder="Email" required>
-        <input type="password" class="input-animated" id="registerPassword" placeholder="Senha (mín. 6 dígitos)" required minlength="6">
+        <input type="password" class="input-animated" id="registerPassword" placeholder="Crie uma Senha (mín. 6 dígitos)" required minlength="6">
         
-        <button type="submit" class="btn btn-primary w-100" style="width: 100%; padding: 14px; background: var(--primary-red); color: white; border: none; border-radius: 12px; cursor: pointer;">
+        <button type="submit" class="btn btn-primary w-100" style="width: 100%; padding: 14px; background: var(--primary-red); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 700;">
           CONCLUIR CADASTRO
         </button>
       </form>
@@ -141,26 +150,31 @@
     function handleOpenRegister() { document.getElementById('registerModal').style.display = 'flex'; }
     function handleCloseRegister() { document.getElementById('registerModal').style.display = 'none'; }
 
+    async function handleForgotPassword() {
+      const email = document.getElementById('email').value;
+      if (!window.Auth) return;
+      try {
+        await window.Auth.recuperarSenha(email);
+      } catch (e) {
+        window.Utils.showToast("Erro ao processar pedido", "error");
+      }
+    }
+
     async function handleEmailLogin(event) {
       event.preventDefault();
-      if (!window.Auth) { window.Utils.showToast("Iniciando conexão...", "info"); return; }
-      
+      if (!window.Auth) { window.Utils.showToast("Carregando sistema...", "info"); return; }
       loading.style.display = 'flex';
-      
       try {
         await window.Auth.loginWithEmail(document.getElementById('email').value, document.getElementById('password').value);
       } catch (e) {
         loading.style.display = 'none';
-        window.Utils.showToast("Email ou senha inválidos", "error");
+        window.Utils.showToast("E-mail ou senha incorretos", "error");
       }
     }
 
     async function handleRegister(event) {
       event.preventDefault();
-      if (!window.authService) {
-        window.Utils.showToast("Sistema carregando...", "info");
-        return;
-      }
+      if (!window.authService) { window.Utils.showToast("Iniciando banco de dados...", "info"); return; }
       loading.style.display = 'flex';
 
       try {
@@ -173,32 +187,30 @@
           name: document.getElementById('registerName').value,
           email: email,
           userType: userType,
-          storeName: (userType === 'parceiro') ? document.getElementById('storeName').value : null
+          storeName: (userType === 'parceiro') ? document.getElementById('storeName').value : null,
+          created_at: new Date().toISOString()
         };
         await window.API.saveUserToFirestore(userCredential.user.uid, dados);
         window.location.href = `${userType}.html`;
       } catch (e) {
         loading.style.display = 'none';
-        window.Utils.showToast("Erro: " + (e.message.includes("email-already") ? "Email já cadastrado" : "Falha no cadastro"), "error");
+        const msg = e.message.includes("email-already") ? "Este e-mail já está em uso" : "Erro ao cadastrar";
+        window.Utils.showToast(msg, "error");
       }
     }
 
     async function handleGoogleLogin() {
-      if (!window.Auth) { window.Utils.showToast("Aguarde o carregamento...", "info"); return; }
-      
+      if (!window.Auth) { window.Utils.showToast("Aguarde...", "info"); return; }
       loading.style.display = 'flex';
-      
-      // Proteção para não travar a tela se o popup for bloqueado
-      setTimeout(() => { if(loading.style.display === 'flex') loading.style.display = 'none'; }, 10000);
-
       try {
+        // Agora usando Redirect para não travar no celular
         await window.Auth.loginWithGoogle();
       } catch (e) {
         loading.style.display = 'none';
-        console.error(e);
-        window.Utils.showToast("Login cancelado ou falhou", "error");
+        window.Utils.showToast("Falha na conexão com Google", "error");
       }
     }
   </script>
 </body>
 </html>
+
