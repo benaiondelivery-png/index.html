@@ -114,73 +114,111 @@
 
   <script>
     let todosPedidos = [];
-    let todosUsuarios = [];
 
+    // Função de inicialização blindada
     async function initAdmin() {
-      if (window.Auth && window.API) {
-        window.Auth.requireAuth(['admin']);
-        
-        // Escutar TODOS os pedidos do sistema em tempo real
-        window.API.escutarTodosPedidos((data) => {
-          todosPedidos = data;
-          atualizarDashboard();
-          renderizarPedidosAdmin();
-        });
-      } else {
-        setTimeout(initAdmin, 500);
+      // 1. Aguarda as ferramentas globais carregarem
+      if (!window.Auth || !window.API || !window.auth) {
+        setTimeout(initAdmin, 300);
+        return;
       }
+
+      // 2. Proteção de Rota (Só Admin entra)
+      if (!window.Auth.requireAuth(['admin'])) return;
+      
+      console.log("🛠️ Admin Benaion: Conectado com sucesso.");
+
+      // 3. Monitoramento em Tempo Real (Ouve o Firebase sem precisar de refresh)
+      window.API.escutarTodosPedidos((pedidos) => {
+        todosPedidos = pedidos;
+        atualizarDashboard();
+        renderizarPedidosAdmin();
+      });
     }
 
     document.addEventListener('DOMContentLoaded', initAdmin);
 
     function atualizarDashboard() {
       const hoje = new Date().toLocaleDateString();
-      const pedidosHoje = todosPedidos.filter(p => new Date(p.created_at?.seconds * 1000).toLocaleDateString() === hoje);
       
+      // Filtra pedidos do dia atual para o faturamento
+      const pedidosHoje = todosPedidos.filter(p => {
+        const dataPedido = p.created_at?.seconds ? new Date(p.created_at.seconds * 1000) : new Date(p.created_at);
+        return dataPedido.toLocaleDateString() === hoje;
+      });
+      
+      // Soma apenas as taxas de entrega para o faturamento do Admin
       const faturamento = pedidosHoje.reduce((acc, curr) => acc + (curr.taxaEntrega || 0), 0);
-      const ativos = todosPedidos.filter(p => p.status === 'em_entrega').length;
+      
+      // Pedidos que estão na rua agora
+      const ativos = todosPedidos.filter(p => ['aceito', 'em_entrega'].includes(p.status)).length;
 
       document.getElementById('statHoje').textContent = pedidosHoje.length;
-      document.getElementById('statFaturamento').textContent = Utils.formatCurrency(faturamento);
+      document.getElementById('statFaturamento').textContent = window.Utils.formatCurrency(faturamento);
       document.getElementById('statAtivos').textContent = ativos;
     }
 
     function renderizarPedidosAdmin() {
       const container = document.getElementById('listaPedidosAdmin');
-      container.innerHTML = todosPedidos.map(p => `
-        <div class="card" style="margin-bottom: 10px; border-left: 5px solid ${getStatusColor(p.status)}">
-          <div style="display:flex; justify-content:space-between;">
-            <b>#${p.id.substring(0,6)}</b>
-            <span class="status-badge status-${p.status}">${p.status}</span>
+      if (!container) return;
+
+      // Ordenar: Mais recentes primeiro
+      const ordenados = [...todosPedidos].sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
+      container.innerHTML = ordenados.map(p => `
+        <div class="card" style="margin-bottom: 12px; border-left: 6px solid ${getStatusColor(p.status)}; border-radius: 12px;">
+          <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom: 8px;">
+            <b style="color: #333;">#${p.id.substring(0,6).toUpperCase()}</b>
+            <span class="badge" style="background: ${getStatusColor(p.status)}; color: white; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold;">
+                ${window.Utils.getStatusText(p.status).toUpperCase()}
+            </span>
           </div>
-          <div style="font-size:13px; margin: 5px 0;">
-            <b>Origem:</b> ${p.bairroRetirada} | <b>Destino:</b> ${p.bairro}<br>
-            <b>Entregador:</b> ${p.entregadorNome || '<span style="color:red">Aguardando...</span>'}
+          
+          <div style="font-size:13px; color: #555;">
+            <p style="margin: 4px 0;"><i class="fas fa-store"></i> <b>Origem:</b> ${p.bairroRetirada}</p>
+            <p style="margin: 4px 0;"><i class="fas fa-motorcycle"></i> <b>Destino:</b> ${p.bairro}</p>
+            <p style="margin: 4px 0;"><i class="fas fa-user"></i> <b>Entregador:</b> ${p.entregadorNome || '<span style="color:#E30613; font-weight:bold;">BUSCANDO...</span>'}</p>
           </div>
-          <div style="text-align:right">
-            <button class="btn btn-small btn-outline" onclick="cancelarPedidoAdmin('${p.id}')">Excluir</button>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+             <span style="font-weight: bold; color: #2ecc71;">${window.Utils.formatCurrency(p.taxaEntrega)}</span>
+             <button class="btn btn-small btn-outline" onclick="cancelarPedidoAdmin('${p.id}')" style="color: #E30613; border-color: #E30613; font-size: 10px;">
+                <i class="fas fa-trash"></i> REMOVER
+             </button>
           </div>
         </div>
       `).join('');
     }
 
     function getStatusColor(status) {
-      switch(status) {
-        case 'aguardando_entregador': return '#ffc107';
-        case 'em_entrega': return '#2196f3';
-        case 'finalizado': return '#2ecc71';
-        default: return '#999';
-      }
+      const cores = {
+        'pendente': '#f1c40f',
+        'aguardando_entregador': '#e67e22',
+        'aceito': '#3498db',
+        'em_entrega': '#9b59b6',
+        'finalizado': '#2ecc71',
+        'cancelado': '#E30613'
+      };
+      return cores[status] || '#999';
     }
 
     function mostrarAba(aba) {
       document.getElementById('abaPedidos').classList.toggle('hidden', aba !== 'pedidos');
       document.getElementById('abaParceiros').classList.toggle('hidden', aba !== 'parceiros');
       document.getElementById('abaUsuarios').classList.toggle('hidden', aba !== 'usuarios');
+      
+      // Estilo dos botões de aba
+      document.querySelectorAll('.tabs-container .btn').forEach(btn => {
+          btn.classList.replace('btn-primary', 'btn-outline');
+      });
+      event.target.classList.replace('btn-outline', 'btn-primary');
     }
 
     async function lancarPedidoManual(e) {
       e.preventDefault();
+      const btn = e.target.querySelector('button');
+      btn.disabled = true;
+
       const data = {
         clienteNome: document.getElementById('manualCliente').value,
         produto: document.getElementById('manualProduto').value,
@@ -188,23 +226,30 @@
         bairro: document.getElementById('manualBairroEnt').value,
         taxaEntrega: parseFloat(document.getElementById('manualTaxa').value),
         status: 'aguardando_entregador',
+        created_at: Date.now(),
         origem: 'ADMIN'
       };
 
       try {
         await window.API.createPedido(data);
-        Utils.showToast("Pedido lançado manualmente!", "success");
-        Utils.hideModal('novoPedidoModal');
+        window.Utils.showToast("Pedido lançado no Radar!", "success");
+        window.Utils.hideModal('novoPedidoModal');
         e.target.reset();
       } catch (err) {
-        Utils.showToast("Erro ao lançar.", "error");
+        window.Utils.showToast("Erro ao lançar pedido.", "error");
+      } finally {
+        btn.disabled = false;
       }
     }
 
     async function cancelarPedidoAdmin(id) {
-      if(confirm("Tem certeza que deseja remover este pedido?")) {
-        await window.API.deletePedido(id);
-        Utils.showToast("Pedido removido", "success");
+      if(confirm("Deseja realmente excluir este pedido? Esta ação não pode ser desfeita.")) {
+        try {
+            await window.API.deletePedido(id);
+            window.Utils.showToast("Pedido removido!", "success");
+        } catch (err) {
+            window.Utils.showToast("Erro ao remover.", "error");
+        }
       }
     }
   </script>
