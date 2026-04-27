@@ -26,126 +26,74 @@ let TAXAS_LOCAIS = {
   "José cesário": 6, "Malvinas": 8, "samaúma": 15, "monte dourado": 30
 };
 
-// Sincroniza taxas com o banco de dados (Para o Admin mudar pelo painel)
 function sincronizarTaxas() {
   onSnapshot(doc(db, "configuracoes", "taxas"), (doc) => {
     if (doc.exists()) {
       TAXAS_LOCAIS = doc.data();
-      console.log("✅ Taxas Benaion atualizadas via nuvem");
+      console.log("✅ Taxas atualizadas");
     }
   });
 }
 sincronizarTaxas();
 
-// --- NÚCLEO API ---
 const API = {
-  // Lógica de cálculo flexível
   calcularTaxa(bairroRetirada, bairroEntrega, adicionais = 0) {
     const taxaRet = TAXAS_LOCAIS[bairroRetirada] || 6;
     const taxaEnt = TAXAS_LOCAIS[bairroEntrega] || 6;
-    
-    // Regra: Cobra a maior taxa entre os dois pontos + adicionais
-    const maiorTaxa = Math.max(taxaRet, taxaEnt);
-    return maiorTaxa + adicionais;
+    return Math.max(taxaRet, taxaEnt) + adicionais;
   },
-
   async getUserProfile(uid) {
-    const docRef = doc(db, "users", uid);
-    const docSnap = await getDoc(docRef);
+    const docSnap = await getDoc(doc(db, "users", uid));
     return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
   },
-
   async saveUserToFirestore(uid, userData) {
-    await setDoc(doc(db, "users", uid), {
-      ...userData,
-      updated_at: new Date().toISOString()
-    }, { merge: true });
+    await setDoc(doc(db, "users", uid), { ...userData, updated_at: new Date().toISOString() }, { merge: true });
   },
-
-  // Facilitador para o Admin mudar as taxas
   async atualizarTabelaTaxas(novaTabela) {
     await setDoc(doc(db, "configuracoes", "taxas"), novaTabela);
   },
-
-  // Escuta pedidos em tempo real (Usado no Admin e Parceiro)
   escutarTodosPedidos(callback) {
-    const q = query(collection(db, "pedidos"));
-    return onSnapshot(q, (snapshot) => {
-      const pedidos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      callback(pedidos);
+    return onSnapshot(collection(db, "pedidos"), (snapshot) => {
+      callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
     });
   }
 };
 
-// --- NÚCLEO DE AUTENTICAÇÃO ---
 const Auth = {
   async loginWithGoogle() {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      let profile = await API.getUserProfile(user.uid);
-
-      if (!profile) {
-        const pendingType = localStorage.getItem('pending_user_type') || 'cliente';
-        profile = {
-          name: user.displayName,
-          email: user.email,
-          userType: pendingType,
-          photo: user.photoURL,
-          created_at: new Date().toISOString()
-        };
-        await API.saveUserToFirestore(user.uid, profile);
-      }
-
-      localStorage.setItem('benaion_user', JSON.stringify({ id: user.uid, ...profile }));
-      this.redirectToDashboard();
-    } catch (error) { throw error; }
-  },
-
-  async loginWithEmail(email, password) {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const profile = await API.getUserProfile(userCredential.user.uid);
-      localStorage.setItem('benaion_user', JSON.stringify({ id: userCredential.user.uid, ...profile }));
-      return profile;
-    } catch (error) {
-      throw new Error("E-mail ou senha inválidos.");
+    const result = await signInWithPopup(auth, googleProvider);
+    let profile = await API.getUserProfile(result.user.uid);
+    if (!profile) {
+      profile = { name: result.user.displayName, email: result.user.email, userType: 'cliente', created_at: new Date().toISOString() };
+      await API.saveUserToFirestore(result.user.uid, profile);
     }
+    localStorage.setItem('benaion_user', JSON.stringify({ id: result.user.uid, ...profile }));
+    window.location.href = `${profile.userType}.html`;
   },
-
+  async loginWithEmail(email, password) {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const profile = await API.getUserProfile(userCredential.user.uid);
+    localStorage.setItem('benaion_user', JSON.stringify({ id: userCredential.user.uid, ...profile }));
+    window.location.href = `${profile.userType}.html`;
+  },
   logout() {
     auth.signOut();
     localStorage.removeItem('benaion_user');
     window.location.href = 'index.html';
   },
-
-  getCurrentUser() {
-    return JSON.parse(localStorage.getItem('benaion_user'));
-  },
-
+  getCurrentUser() { return JSON.parse(localStorage.getItem('benaion_user')); },
   requireAuth(allowedTypes = []) {
     const user = this.getCurrentUser();
-    if (!user) {
-      window.location.href = 'index.html';
-      return false;
-    }
-    if (allowedTypes.length > 0 && !allowedTypes.includes(user.userType)) {
-      this.redirectToDashboard();
-      return false;
-    }
+    if (!user) { window.location.href = 'index.html'; return false; }
     return true;
-  },
-
-  redirectToDashboard() {
-    const user = this.getCurrentUser();
-    if (user) window.location.href = `${user.userType}.html`;
   }
 };
 
-// EXPOSIÇÃO GLOBAL (Crucial para funcionar em todos os arquivos)
+// --- EXPOSIÇÃO GLOBAL (CORRIGE O ERRO "auth is not defined") ---
+window.auth = auth;
+window.db = db;
 window.API = API;
 window.Auth = Auth;
-window.db = db;
+window.TAXAS_LOCAIS = TAXAS_LOCAIS;
 
-console.log("🚀 Benaion API v1.8 - Pronta para Laranjal do Jari");
-
+console.log("🚀 Benaion API v2.0 Ativa");
